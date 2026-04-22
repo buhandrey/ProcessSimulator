@@ -1,6 +1,6 @@
-#include "extrema.h"
+#include "events.h"
 
 int main () {
-    extrema test;
+    events test;
     return 0;
 }
