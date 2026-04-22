@@ -1,3 +1,5 @@
+//Убрать сложные методы в конец файла
+
 #ifndef EVENTS_H
 #define EVENTS_H
 

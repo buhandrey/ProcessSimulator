@@ -1,3 +1,5 @@
+//Убрать сложные методы в конец файла
+
 #ifndef BUFFER_H
 #define BUFFER_H
 

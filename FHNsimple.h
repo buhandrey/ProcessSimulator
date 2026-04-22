@@ -1,3 +1,5 @@
+//Убрать сложные методы в конец файла
+
 #ifndef FHNSIMPLE_H
 #define FHNSIMPLE_H
 

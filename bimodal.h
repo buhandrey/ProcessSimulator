@@ -1,3 +1,5 @@
+//Убрать сложные методы в конец файла
+
 #ifndef BIMODAL_H
 #define BIMODAL_H
 

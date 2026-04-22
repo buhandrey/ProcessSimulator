@@ -1,3 +1,5 @@
+//Убрать сложные методы в конец файла
+
 #ifndef LEVY_H
 #define LEVY_H
 

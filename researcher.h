@@ -1,3 +1,5 @@
+//Убрать сложные методы в конец файла
+
 #ifndef RESEARCHER_H
 #define RESEARCHER_H
 

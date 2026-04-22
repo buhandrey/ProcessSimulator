@@ -1,3 +1,5 @@
+//Убрать сложные методы в конец файла
+
 #ifndef TRIMODAL_H
 #define TRIMODAL_H
 

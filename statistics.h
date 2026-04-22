@@ -1,3 +1,5 @@
+//Убрать сложные методы в конец файла
+
 #ifndef STATISTICS_H
 #define STATISTICS_H
 

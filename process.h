@@ -1,3 +1,5 @@
+//Убрать сложные методы в конец файла
+
 #ifndef PROCESS_H
 #define PROCESS_H
 

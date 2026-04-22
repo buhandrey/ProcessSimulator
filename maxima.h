@@ -1,3 +1,5 @@
+//Убрать сложные методы в конец файла
+
 #ifndef MAXIMA_H
 #define MAXIMA_H
 

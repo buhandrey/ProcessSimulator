@@ -1,3 +1,5 @@
+//Убрать сложные методы в конец файла
+
 #ifndef RULKOV_MAP_H
 #define RULKOV_MAP_H
 

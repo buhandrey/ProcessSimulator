@@ -1,3 +1,5 @@
+//Убрать сложные методы в конец файла
+
 #ifndef GASDEV_H
 #define GASDEV_H
 

@@ -1,3 +1,5 @@
+//Убрать сложные методы в конец файла
+
 #ifndef DISTRIBUTION_H
 #define DISTRIBUTION_H
 

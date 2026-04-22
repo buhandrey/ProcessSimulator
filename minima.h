@@ -1,3 +1,5 @@
+//Убрать сложные методы в конец файла
+
 #ifndef MINIMA_H
 #define MINIMA_H
 

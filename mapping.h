@@ -1,3 +1,5 @@
+//Убрать сложные методы в конец файла
+
 #ifndef MAPPING_H
 #define MAPPING_H
 

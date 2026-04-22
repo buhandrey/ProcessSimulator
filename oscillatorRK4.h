@@ -1,3 +1,5 @@
+//Убрать сложные методы в конец файла
+
 #ifndef OSCILLATORRK4_H
 #define OSCILLATORRK4_H
 

@@ -1,3 +1,5 @@
+//Убрать сложные методы в конец файла
+
 #ifndef POISSON_H
 #define POISSON_H
 

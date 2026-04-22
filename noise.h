@@ -1,3 +1,5 @@
+//Убрать сложные методы в конец файла
+
 #ifndef NOISE_H
 #define NOISE_H
 

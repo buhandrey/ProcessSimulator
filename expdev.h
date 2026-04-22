@@ -1,3 +1,5 @@
+//Убрать сложные методы в конец файла
+
 #ifndef EXPDEV_H
 #define EXPDEV_H
 

@@ -1,3 +1,5 @@
+//Убрать сложные методы в конец файла
+
 #ifndef ARRAY3D_H
 #define ARRAY3D_H
 

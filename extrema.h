@@ -1,3 +1,5 @@
+//Убрать сложные методы в конец файла
+
 #ifndef EXTREMA_H
 #define EXTREMA_H
 

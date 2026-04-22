@@ -1,3 +1,5 @@
+//Убрать сложные методы в конец файла
+
 #ifndef CORRELATION_H
 #define CORRELATION_H
 

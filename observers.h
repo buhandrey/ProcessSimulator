@@ -1,3 +1,5 @@
+//Убрать сложные методы в конец файла
+
 #ifndef OBSERVERSE_H
 #define OBSERVERSE_H
 

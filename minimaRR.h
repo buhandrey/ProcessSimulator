@@ -1,3 +1,5 @@
+//Убрать сложные методы в конец файла
+
 #ifndef MINIMARR_H
 #define MINIMARR_H
 
