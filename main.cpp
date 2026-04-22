@@ -1,6 +1,6 @@
-#include "trimodal.h"
+#include "array1d.h"
 
 int main () {
-    trimodal test;
+    //trimodal test;
     return 0;
 }
