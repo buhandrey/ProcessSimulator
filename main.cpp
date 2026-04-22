@@ -1,6 +1,6 @@
-#include "minima.h"
+#include "minimaRR.h"
 
 int main () {
-    minima test;
+    minimaRR test;
     return 0;
 }
