@@ -1,6 +1,6 @@
-#include "gasdev.h"
+#include "bimodal.h"
 
 int main () {
-    gasdev test;
+    bimodal test;
     return 0;
 }
