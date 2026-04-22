@@ -1,6 +1,6 @@
-#include "maxima.h"
+#include "maximaRR.h"
 
 int main () {
-    maxima test;
+    maximaRR test;
     return 0;
 }
