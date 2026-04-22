@@ -11,20 +11,9 @@ protected:
     long size1;
     std::vector<array_element> val;
 public:
-    array1d () {
-        size0 = 0;
-        size1 = 0;
-    }
+    array1d ();
     ~array1d() = default;
-    void resize(long set_size0, long set_size1) {
-        size0 = set_size0;
-        size1 = set_size1;
-        val.resize(size1);
-        for (long s1=0;s1<size1;s1++) {
-            val[s1].resize(size0);
-            val[s1].init();
-        }
-    }
+    void resize(long set_size0, long set_size1);
     long s0 () { return size0; }
     long s1 () { return size1; }
     double get (long i1) { return val[i1].var(); }
@@ -119,5 +108,22 @@ public:
     double extreme_part_outside_minimaRR (long var, double sigma_in) const {return val[var].extreme_part_outside_minimaRR (sigma_in);}
     double extreme_part_outside_maximaRR (long var, double sigma_in) const {return val[var].extreme_part_outside_maximaRR (sigma_in);}
 };
+
+template <typename array_element>
+array1d<array_element>::array1d () {
+    size0 = 0;
+    size1 = 0;
+}
+
+template <typename array_element>
+void array1d<array_element>::resize(long set_size0, long set_size1) {
+    size0 = set_size0;
+    size1 = set_size1;
+    val.resize(size1);
+    for (long s1=0;s1<size1;s1++) {
+        val[s1].resize(size0);
+        val[s1].init();
+    }
+}
 
 #endif
