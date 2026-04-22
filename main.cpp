@@ -1,6 +1,6 @@
-#include "bimodal.h"
+#include "trimodal.h"
 
 int main () {
-    bimodal test;
+    trimodal test;
     return 0;
 }
