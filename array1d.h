@@ -27,66 +27,18 @@ public:
     }
     long s0 () { return size0; }
     long s1 () { return size1; }
-    double get (long i1) {
-        if (i1>=size1)
-            throw std::invalid_argument("Out of range (01) (from array1d)\n");
-        return val[i1].var();
-    }
-    double get_delayed (long delay, long i1) {
-        if (i1>=size1)
-            throw std::invalid_argument("Out of range (02) (from array1d)\n");
-        return val[i1].var(delay);
-    }
-    double get_time (long i1) {
-        if (i1>=size1)
-            throw std::invalid_argument("Out of range (01x) (from array1d)\n");
-        return val[i1].time_int();
-    }
-    double get_entropy (long i1) {
-        if (i1>=size1)
-            throw std::invalid_argument("Out of range (09) (from array1d)\n");
-        return val[i1].get_entropy();
-    }
-    double get_entropy2 (long i1) {
-        if (i1>=size1)
-            throw std::invalid_argument("Out of range (10) (from array1d)\n");
-        return val[i1].get_entropy2();
-    }
-    double get_prob_dens (long i1, long win_number) {
-        if (i1>=size1)
-            throw std::invalid_argument("Out of range (11) (from array1d)\n");
-        return val[i1].get_prob_dens(win_number);
-    }
-    double get_prob_right (long i1, long win_number) {
-        if (i1>=size1)
-            throw std::invalid_argument("Out of range (12) (from array1d)\n");
-        return val[i1].get_prob_right(win_number);
-    }
-    double get_prob_left (long i1, long win_number) {
-        if (i1>=size1)
-            throw std::invalid_argument("Out of range (13) (from array1d)\n");
-        return val[i1].get_prob_left(win_number);
-    }
-    void initbuffer (long i1, double value) {
-        if (i1>=size1)
-            throw std::invalid_argument("Out of range (03) (from array1d)\n");
-        val[i1].initwithval(value);
-    }
-    void step (long i1, double value) {
-        if (i1>=size1)
-            throw std::invalid_argument("Out of range (04) (from array1d)\n");
-        val[i1].step(value);
-    }
-    void correct (long i1, double value) {
-        if (i1>=size1)
-            throw std::invalid_argument("Out of range (05) (from array1d)\n");
-        val[i1].correct(value);
-    }
-    void correct (long delay, long i1, double value) {
-        if (i1>=size1)
-            throw std::invalid_argument("Out of range (06) (from array1d)\n");
-        val[i1].correct(delay, value);
-    }
+    double get (long i1) { return val[i1].var(); }
+    double get_delayed (long delay, long i1) { return val[i1].var(delay); }
+    double get_time (long i1) { return val[i1].time_int(); }
+    double get_entropy (long i1) { return val[i1].get_entropy(); }
+    double get_entropy2 (long i1) { return val[i1].get_entropy2(); }
+    double get_prob_dens (long i1, long win_number) { return val[i1].get_prob_dens(win_number); }
+    double get_prob_right (long i1, long win_number) { return val[i1].get_prob_right(win_number); }
+    double get_prob_left (long i1, long win_number) { return val[i1].get_prob_left(win_number); }
+    void initbuffer (long i1, double value) { val[i1].initwithval(value); }
+    void step (long i1, double value) { val[i1].step(value); }
+    void correct (long i1, double value) { val[i1].correct(value); }
+    void correct (long delay, long i1, double value) { val[i1].correct(delay, value); }
     void prob_init (long i1, long set_win_size) { val[i1].prob_init(set_win_size); }
     void update_stat (long i1) { val[i1].update_stat(); }
     long get_bins_number (long i1) { return val[i1].get_bins_number(); }
