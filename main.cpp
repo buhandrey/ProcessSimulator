@@ -1,6 +1,6 @@
-#include "Rulkov_map.h"
+#include "FHNsimple.h"
 
 int main () {
-    Rulkov_map test;
+    FHNsimple test;
     return 0;
 }
