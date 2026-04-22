@@ -35,41 +35,17 @@ public:
     long s1 () { return size1; }
     long s2 () { return size2; }
     long s12 () { return s1s2; }
-    double get (long i) {
-        if (i>=s1s2)
-            throw std::invalid_argument("Out of range 1 (from array2d)\n");
-        return val[i].var();
-    }
-    double get_delayed (long delay, long i) {
-        return val[i].var(delay);
-    }
-    double get (long i1, long i2) {
-        return val[i1*size2 + i2].var();
-    }
-    double get_delayed (long delay, long i1, long i2) {
-        return val[i1*size2 + i2].var(delay);
-    }
-    void initbuffer (long i, double value) {
-        val[i].initwithval(value);
-    }
-    void initbuffer (long i1, long i2, double value) {
-        val[i1*size2 + i2].initwithval(value);
-    }
-    void step (long i, double value) {
-        val[i].step(value);
-    }
-    void step (long i1, long i2, double value) {
-        val[i1*size2 + i2].step(value);
-    }
-    void correct (long i, double value) {
-        val[i].correct(value);
-    }
-    void correct (long i1, long i2, double value) {
-        val[i1*size2 + i2].correct(value);
-    }
-    void correct (long delay, long i1, long i2, double value) {
-        val[i1*size2 + i2].correct(delay, value);
-    }
+    double get (long i) { return val[i].var(); }
+    double get_delayed (long delay, long i) { return val[i].var(delay); }
+    double get (long i1, long i2) { return val[i1*size2 + i2].var(); }
+    double get_delayed (long delay, long i1, long i2) { return val[i1*size2 + i2].var(delay); }
+    void initbuffer (long i, double value) { val[i].initwithval(value); }
+    void initbuffer (long i1, long i2, double value) { val[i1*size2 + i2].initwithval(value); }
+    void step (long i, double value) { val[i].step(value); }
+    void step (long i1, long i2, double value) { val[i1*size2 + i2].step(value); }
+    void correct (long i, double value) { val[i].correct(value); }
+    void correct (long i1, long i2, double value) { val[i1*size2 + i2].correct(value); }
+    void correct (long delay, long i1, long i2, double value) { val[i1*size2 + i2].correct(delay, value); }
 };
 
 #endif
