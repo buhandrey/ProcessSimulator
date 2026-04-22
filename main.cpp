@@ -3,6 +3,8 @@
 #include "levy.h"
 #include "poisson.h"
 
+//Программный комплекс опубликован https://github.com/buhandrey/ProcessSimulator
+
 int main() {
     // researcher<Rulkov_map> rkm;
     // rkm.TS0xy_x0_y0_alpha_mu_sigma_t0_t1 (1.0, -2.9, 4.0, 0.001, 1.0, 99e4, 1e6);
