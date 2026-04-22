@@ -1,6 +1,6 @@
-#include "FHNsimple.h"
+#include "researcher.h"
 
 int main () {
-    FHNsimple test;
+    researcher<double> test;
     return 0;
 }
