@@ -1,8 +1,6 @@
-#include "statistics.h"
-#include "correlation.h"
+#include "distribution.h"
 
 int main () {
-    statistics testA;
-    correlation testB;
+    distribution test;
     return 0;
 }

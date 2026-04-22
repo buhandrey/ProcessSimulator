@@ -1,6 +1,10 @@
 #ifndef DISTRIBUTION_H
 #define DISTRIBUTION_H
 
+#include <iostream>
+#include <vector>
+#include <cmath>
+
 class distribution {
 protected:
     std::vector<long> prob_histogram;
