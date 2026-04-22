@@ -1,6 +1,6 @@
-#include "distribution.h"
+#include "observers.h"
 
 int main () {
-    distribution test;
+    observers test;
     return 0;
 }
