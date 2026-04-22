@@ -1,6 +1,6 @@
-#include "ran.h"
+#include "poisson.h"
 
 int main () {
-    ran test;
+    poisson test;
     return 0;
 }
