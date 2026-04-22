@@ -1,6 +1,6 @@
-#include "poisson.h"
+#include "gasdev.h"
 
 int main () {
-    poisson test;
+    gasdev test;
     return 0;
 }
