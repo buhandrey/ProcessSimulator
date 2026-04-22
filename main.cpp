@@ -1,4 +1,4 @@
-#include "array2d.h"
+#include "array3d.h"
 
 int main () {
     //trimodal test;
