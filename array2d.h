@@ -13,24 +13,9 @@ protected:
     long s1s2;
     std::vector<array_element> val;
 public:
-    array2d () {
-        size0 = 0;
-        size1 = 0;
-        size2 = 0;
-        s1s2 = 0;
-    }
+    array2d ();
     ~array2d() = default;
-    void resize(long set_size0, long set_size1, long set_size2) {
-        size0 = set_size0;
-        size1 = set_size1;
-        size2 = set_size2;
-        s1s2 = size1 * size2;
-        val.resize(s1s2);
-        for (long s=0;s<s1s2;s++) {
-            val[s].resize(size0);
-            val[s].init();
-        }
-    }
+    void resize(long set_size0, long set_size1, long set_size2);
     long s0 () { return size0; }
     long s1 () { return size1; }
     long s2 () { return size2; }
@@ -47,5 +32,26 @@ public:
     void correct (long i1, long i2, double value) { val[i1*size2 + i2].correct(value); }
     void correct (long delay, long i1, long i2, double value) { val[i1*size2 + i2].correct(delay, value); }
 };
+
+template <typename array_element>
+array2d<array_element>::array2d () {
+    size0 = 0;
+    size1 = 0;
+    size2 = 0;
+    s1s2 = 0;
+}
+
+template <typename array_element>
+void array2d<array_element>::resize (long set_size0, long set_size1, long set_size2) {
+    size0 = set_size0;
+    size1 = set_size1;
+    size2 = set_size2;
+    s1s2 = size1 * size2;
+    val.resize(s1s2);
+    for (long s=0;s<s1s2;s++) {
+        val[s].resize(size0);
+        val[s].init();
+    }
+}
 
 #endif
