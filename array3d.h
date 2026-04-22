@@ -35,26 +35,10 @@ public:
     long s3 () { return size3; }
     long s23 () { return s2s3; }
     long s123 () { return s1s2s3; }
-    double get (long i) {
-        if (i>=s1s2s3)
-            throw std::invalid_argument("Out of range 1 (from array3d)\n");
-        return val[i];
-    }
-    double get (long i1, long i2, long i3) {
-        if (i1>=size1 || i2>=size2 || i3>=size3)
-            throw std::invalid_argument("Out of range 2 (from array3d)\n");
-        return val[i1*s2s3 + i2*size3 + i3];
-    }
-    void set (long i, double value) {
-        if (i>=s1s2s3)
-            throw std::invalid_argument("Out of range 3 (from array3d)\n");
-        val[i] = value;
-    }
-    void set (long i1, long i2, long i3, double value) {
-        if (i1>=size1 || i2>=size2 || i3>=size3)
-            throw std::invalid_argument("Out of range 4 (from array3d)\n");
-        val[i1*s2s3 + i2*size3 + i3] = value;
-    }
+    double get (long i) { return val[i]; }
+    double get (long i1, long i2, long i3) { return val[i1*s2s3 + i2*size3 + i3]; }
+    void set (long i, double value) { val[i] = value; }
+    void set (long i1, long i2, long i3, double value) { val[i1*s2s3 + i2*size3 + i3] = value; }
 };
 
 #endif
