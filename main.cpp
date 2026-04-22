@@ -1,6 +1,6 @@
-#include "array3d.h"
+#include "Rulkov_map.h"
 
 int main () {
-    //trimodal test;
+    Rulkov_map test;
     return 0;
 }
