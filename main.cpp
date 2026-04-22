@@ -1,6 +1,6 @@
-#include "observers.h"
+#include "extrema.h"
 
 int main () {
-    observers test;
+    extrema test;
     return 0;
 }
