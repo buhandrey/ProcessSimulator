@@ -1,6 +1,6 @@
-#include "maximaRR.h"
+#include "buffer.h"
 
 int main () {
-    maximaRR test;
+    buffer test;
     return 0;
 }
