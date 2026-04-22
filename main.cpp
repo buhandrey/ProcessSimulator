@@ -1,6 +1,6 @@
-#include "buffer.h"
+#include "ran.h"
 
 int main () {
-    buffer test;
+    ran test;
     return 0;
 }
