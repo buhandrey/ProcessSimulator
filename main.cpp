@@ -22,6 +22,6 @@ int main() {
     // researcher<levy> levynoise;
     // levynoise.LevySourceStat_alpha_beta_sigma_mu_idum_N (1.9999, -0.5, 1.0, 0.0, -341, 1e7);
     researcher<poisson> poissonnoise;
-    poissonnoise.PoissonSourceStat_alpha_beta_sigma_mu_idum_N (0.001, -341, 1e5);
+    poissonnoise.PoissonSourceStat_alpha_beta_sigma_mu_idum_N (0.001, -341, 1e11);
     return 0;
 }

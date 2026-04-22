@@ -11,6 +11,7 @@ class researcher {
 public:
     researcher () = default;
     ~researcher() = default;
+    /*Методы для класса Rulkov_map*/
     void TS0xy_x0_y0_alpha_mu_sigma_t0_t1 (double x0, double y0, double alpha, double mu, double sigma, long t0, long t1);
     void TS0xyLCE_x0_y0_alpha_mu_sigma_t0_t1 (double x0, double y0, double alpha, double mu, double sigma, long t0, long t1);
     void PP0xy_x0_y0_alpha_mu_sigma_t0_t1 (double x0, double y0, double alpha, double mu, double sigma, long t0, long t1);
@@ -23,7 +24,9 @@ public:
     void ExonS_s0_ds_s1_x0_y0_alpha_mu_t0_t1_winsize (double s0, double ds, double s1, double x0, double y0, double alpha, double mu, long t0, long t1, long ws);
     void ExonA_a0_da_a1_x0_y0_mu_sigma_t0_t1_winsize (double a0, double da, double a1, double x0, double y0, double mu, double sigma, long t0, long t1, long ws);
     void Min0x_x0_y0_alpha_mu_sigma_t0_t1(double x0, double y0, double alpha, double mu, double sigma, long t0, long t1);
+    /*Методы для класса levy*/
     void LevySourceStat_alpha_beta_sigma_mu_idum_N (double alpha, double beta, double sigma, double mu, long idum, long N);
+    /*Методы для класса poisson*/
     void PoissonSourceStat_alpha_beta_sigma_mu_idum_N (double freq, long idum, long N);
 };
 
