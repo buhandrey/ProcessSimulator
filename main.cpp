@@ -1,6 +1,6 @@
-#include "events.h"
+#include "minima.h"
 
 int main () {
-    events test;
+    minima test;
     return 0;
 }
