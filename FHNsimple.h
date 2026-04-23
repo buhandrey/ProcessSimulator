@@ -77,7 +77,7 @@ public:
         for (long i=0;i<vars_tilda.s1();i++) {
             double old_xt = vars_tilda.get(i, 0) + portion * all_vars_temp.get(kin, i+1, 0);
             double old_yt = vars_tilda.get(i, 1) + portion * all_vars_temp.get(kin, i+1, 1);
-            all_vars_temp.set(kout, i+1, 0, old_xt * (1.0 - xsq) - old_yt);
+            all_vars_temp.set(kout, i+1, 0, (old_xt * (1.0 - xsq) - old_yt) / par_e);
             all_vars_temp.set(kout, i+1, 1, old_xt);
         }
     }

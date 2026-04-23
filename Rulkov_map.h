@@ -76,14 +76,14 @@ public:
         }
     }
     void function (long kin, double portion, long kout) {
-        double old_x = vars.get(0) + portion * all_vars_temp.get(kin, 0, 0);
-        double old_y = vars.get(1) + portion * all_vars_temp.get(kin, 0, 1);
+        double old_x = vars.get(0);
+        double old_y = vars.get(1);
         double oneplusxsq = 1.0 + old_x*old_x;
         all_vars_temp.set(kout, 0, 0, old_y + par_a / oneplusxsq);
         all_vars_temp.set(kout, 0, 1, old_y - par_m * (old_x + par_s));
         for (long i=0;i<vars_tilda.s1();i++) {
-            double old_xt = vars_tilda.get(i, 0) + portion * all_vars_temp.get(kin, i+1, 0);
-            double old_yt = vars_tilda.get(i, 1) + portion * all_vars_temp.get(kin, i+1, 1);
+            double old_xt = vars_tilda.get(i, 0);
+            double old_yt = vars_tilda.get(i, 1);
             all_vars_temp.set(kout, i+1, 0, old_yt - 2.0*par_a*old_x*old_xt/(oneplusxsq*oneplusxsq));
             all_vars_temp.set(kout, i+1, 1, old_yt - par_m*old_xt);
         }

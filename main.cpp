@@ -8,8 +8,9 @@
 
 int main() {
     researcher<FHNsimple> fhn;
-    fhn.TS0xy_x0_y0_alpha_epsilon_dt_t0_t1 (1.0, 0.0, 0.9, 0.001, 0.0001, 99e4, 1e6);
+    fhn.TS0xy_x0_y0_alpha_epsilon_dt_t0_t1 (1.0, 0.0, 0.9, 0.001, 0.0001, 99e5, 1e7);
     // researcher<Rulkov_map> rkm;
+    // rkm.TS0xy_x0_y0_alpha_mu_sigma_t0_t1 (1.0, -2.9, 4.0, 0.001, 1.0, 0, 1e3);
     // rkm.TS0xy_x0_y0_alpha_mu_sigma_t0_t1 (1.0, -2.9, 4.0, 0.001, 1.0, 99e4, 1e6);
     // rkm.TS0xyLCE_x0_y0_alpha_mu_sigma_t0_t1 (1.0, -2.9, 4.0, 0.001, 1.0, 99e4, 1e6);
     // rkm.PP0xy_x0_y0_alpha_mu_sigma_t0_t1 (1.0, -2.9, 4.0, 0.001, 1.0, 99e4, 1e6);
