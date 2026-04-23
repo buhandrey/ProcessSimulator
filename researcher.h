@@ -11,6 +11,8 @@ class researcher {
 public:
     researcher () = default;
     ~researcher() = default;
+    /*Методы для класса FHNsimple*/
+    void TS0xy_x0_y0_alpha_epsilon_dt_t0_t1 (double x0, double y0, double alpha, double epsilon, double dt, long t0, long t1);
     /*Методы для класса Rulkov_map*/
     void TS0xy_x0_y0_alpha_mu_sigma_t0_t1 (double x0, double y0, double alpha, double mu, double sigma, long t0, long t1);
     void TS0xyLCE_x0_y0_alpha_mu_sigma_t0_t1 (double x0, double y0, double alpha, double mu, double sigma, long t0, long t1);
@@ -29,6 +31,23 @@ public:
     /*Методы для класса poisson*/
     void PoissonSourceStat_alpha_beta_sigma_mu_idum_N (double freq, long idum, long N);
 };
+
+template <typename specificmodel>
+void researcher<specificmodel>::TS0xy_x0_y0_alpha_epsilon_dt_t0_t1 (double x0, double y0, double alpha, double epsilon, double dt, long t0, long t1) {
+    specificmodel model;
+    model.set_par_a(alpha);
+    model.set_par_e(epsilon);
+    model.set_buffer_size(2);
+    model.set_x0(x0);
+    model.set_y0(y0);
+    std::stringstream datfile, pngfile;
+    datfile << "TS0xy" << model.get_basename() << ".dat";
+    pngfile << "TS0xy" << model.get_basename() << ".png";
+    std::ofstream datafile;
+    datafile.open(datfile.str());
+    long every = (t1-t0)/100000;
+    if (every==0) every = 1;
+}
 
 template <typename specificmodel>
 void researcher<specificmodel>::TS0xy_x0_y0_alpha_mu_sigma_t0_t1 (double x0, double y0, double alpha, double mu, double sigma, long t0, long t1) {

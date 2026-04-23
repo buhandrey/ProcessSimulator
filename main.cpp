@@ -1,4 +1,5 @@
 #include "researcher.h"
+#include "FHNsimple.h"
 #include "Rulkov_map.h"
 #include "levy.h"
 #include "poisson.h"
@@ -6,6 +7,8 @@
 //Программный комплекс опубликован https://github.com/buhandrey/ProcessSimulator
 
 int main() {
+    researcher<FHNsimple> fhn;
+    fhn.TS0xy_x0_y0_alpha_epsilon_dt_t0_t1 (1.0, 0.0, 0.9, 0.001, 0.0001, 99e4, 1e6);
     // researcher<Rulkov_map> rkm;
     // rkm.TS0xy_x0_y0_alpha_mu_sigma_t0_t1 (1.0, -2.9, 4.0, 0.001, 1.0, 99e4, 1e6);
     // rkm.TS0xyLCE_x0_y0_alpha_mu_sigma_t0_t1 (1.0, -2.9, 4.0, 0.001, 1.0, 99e4, 1e6);
@@ -21,7 +24,7 @@ int main() {
     // rkm.Min0x_x0_y0_alpha_mu_sigma_t0_t1(1.0, -2.9, 4.0, 0.001, 1.0, 3e5, 1e6);
     // researcher<levy> levynoise;
     // levynoise.LevySourceStat_alpha_beta_sigma_mu_idum_N (1.9999, -0.5, 1.0, 0.0, -341, 1e7);
-    researcher<poisson> poissonnoise;
-    poissonnoise.PoissonSourceStat_alpha_beta_sigma_mu_idum_N (0.001, -341, 1e11);
+    // researcher<poisson> poissonnoise;
+    // poissonnoise.PoissonSourceStat_alpha_beta_sigma_mu_idum_N (0.001, -341, 1e11);
     return 0;
 }
