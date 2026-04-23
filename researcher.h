@@ -903,7 +903,8 @@ void researcher<specificmodel>::LevySourceStat_alpha_beta_sigma_mu_idum_N (doubl
     }
     pdatafile.close();
     std::stringstream plot_command2;
-    plot_command2 << "gnuplot << EOF\nset terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; unset warnings; set key tmargin center horizontal; set xlabel 'x'; set ylabel 'p(x)'; set output '" << pngfile.str() << "'; stat '" << pdtfile.str() << "' u 1:2 nooutput; maxval = STATS_max_y; set yrange[0:maxval*1.1]; minval = STATS_min_x; maxval = STATS_max_x; range = maxval-minval+0.01; set xrange[minval-0.05*range:maxval+0.05*range]; set label 'entropy = " << model.get_entropy2() << " bits' at screen 0.7,0.95; plot '" << pdtfile.str() << "' u 1:2:3 w boxes lc rgb 0x00556b2f title 'p(x)';\nEOF";
+    plot_command2 << "gnuplot << EOF\nset terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; unset warnings; set key tmargin center horizontal;"
+                  << " set xlabel 'η'; set ylabel 'p(η)'; set output '" << pngfile.str() << "'; stat '" << pdtfile.str() << "' u 1:2 nooutput; maxval = STATS_max_y; set yrange[0:maxval*1.1]; minval = STATS_min_x; maxval = STATS_max_x; range = maxval-minval+0.01; set xrange[minval-0.05*range:maxval+0.05*range]; set label 'entropy = " << model.get_entropy2() << " bits' at screen 0.7,0.95; plot '" << pdtfile.str() << "' u 1:2:3 w boxes lc rgb 0x00556b2f title 'p(x)';\nEOF";
     std::cout << "\nGnuplot:\n" << plot_command2.str() << "\n\n";
     std::system (plot_command2.str().c_str());
 }
@@ -937,7 +938,8 @@ void researcher<specificmodel>::PoissonSourceStat_alpha_beta_sigma_mu_idum_N (do
     }
     dataTSfile.close();
     std::stringstream plot_command;
-    plot_command << "gnuplot << EOF\nset terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; unset warnings; set key tmargin center horizontal; set xlabel 't'; set ylabel 'A'; set output '" << pngTSfile.str() << "'; set yrange [-0.1 : 1.1]; set xrange [" << start_time*0.5 << " : " << finit_time << "]; ";
+    plot_command << "gnuplot << EOF\nset terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; unset warnings; set key tmargin center horizontal;"
+                 << " set xlabel 't'; set ylabel 'φ(t)'; set output '" << pngTSfile.str() << "'; set yrange [-0.1 : 1.1]; set xrange [" << start_time*0.5 << " : " << finit_time << "]; ";
     plot_command << "plot '" << datTSfile.str() << "' u 1:2 w l lw 3 lc rgb 'black' title 'Poisson process';\nEOF";
     std::cout << "\nGnuplot:\n" << plot_command.str() << "\n\n";
     std::system (plot_command.str().c_str());
@@ -961,7 +963,8 @@ void researcher<specificmodel>::PoissonSourceStat_alpha_beta_sigma_mu_idum_N (do
     }
     pdatafile.close();
     std::stringstream plot_command2;
-    plot_command2 << "gnuplot << EOF\nset terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; unset warnings; set key tmargin center horizontal; set xlabel 'x'; set ylabel 'p(x)'; set output '" << pngfile.str() << "'; stat '" << pdtfile.str() << "' u 1:2 nooutput; maxval = STATS_max_y; set yrange[0:maxval*1.1]; minval = STATS_min_x; maxval = STATS_max_x; range = maxval-minval+0.01; set xrange[minval-0.05*range:maxval+0.05*range]; set label 'entropy = " << model.get_entropy2_events() << " bits' at screen 0.7,0.95; plot '" << pdtfile.str() << "' u 1:2:3 w boxes lc rgb 0x00556b2f title 'p(x)';\nEOF";
+    plot_command2 << "gnuplot << EOF\nset terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; unset warnings; set key tmargin center horizontal;"
+                  << " set xlabel 'φ'; set ylabel 'p(φ)'; set output '" << pngfile.str() << "'; stat '" << pdtfile.str() << "' u 1:2 nooutput; maxval = STATS_max_y; set yrange[0:maxval*1.1]; minval = STATS_min_x; maxval = STATS_max_x; range = maxval-minval+0.01; set xrange[minval-0.05*range:maxval+0.05*range]; set label 'entropy = " << model.get_entropy2_events() << " bits' at screen 0.7,0.95; plot '" << pdtfile.str() << "' u 1:2:3 w boxes lc rgb 0x00556b2f title 'p(x)';\nEOF";
     std::cout << "\nGnuplot:\n" << plot_command2.str() << "\n\n";
     std::system (plot_command2.str().c_str());
 }
