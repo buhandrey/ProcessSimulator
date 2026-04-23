@@ -1,5 +1,3 @@
-//Убрать сложные методы в конец файла
-
 #ifndef DS_H
 #define DS_H
 
@@ -23,167 +21,40 @@ protected:
     array2d<buffer> vars_tilda;
     double dt;
 public:
-    ds () {
-        calc_lyap=false;
-        dt = 0.0;
-        modelname = "ds";
-    }
+    ds ();
     ~ds() = default;
-    double getdt () { return dt; }
-    void resize_and_init (long set_size, long set_nvars, long set_nLCE, long set_nk) {
-        if (set_size<1)
-            throw std::invalid_argument("Vector size must be positive (from ds)\n");
-        if (set_nvars<1)
-            throw std::invalid_argument("Model size must be positive (from ds)\n");
-        if (set_nk<1)
-            throw std::invalid_argument("Temporal buffer must be positive (from ds)\n");
-        if (set_nLCE<0)
-            throw std::invalid_argument("LCE buffer must be non-negative (from ds)\n");
-        val.resize(set_size, 0.0);
-        vars.resize(set_size, set_nvars);
-        all_vars_temp.resize(set_nk, 1+set_nLCE, set_nvars);
-        if ((calc_lyap)&&(set_nLCE>0)) {
-            vars_tilda.resize(set_size, set_nLCE, set_nvars);
-            lyaps_sum.resize(set_nLCE, 0.0);
-            lyaps_time.resize(set_nLCE, 0.0);
-            lyaps_time_prev.resize(set_nLCE, 0.0);
-        }
-    }
-    void calc_amplitude () {
-        double sumsq = 0.0;
-        for (long n=0;n<vars.s1();n++) {
-            sumsq += vars.get(n)*vars.get(n);
-        }
-        val[marker] = sqrt(sumsq);
-    }
-    void normalization_init () {
-        for (long l=0;l<vars_tilda.s1();l++) {
-            for (long n=0;n<vars_tilda.s2();n++) {
-                for (long h=0;h<vars_tilda.s0();h++) {
-                    if (l==n) vars_tilda.step(l, n, 1.0);
-                    else vars_tilda.step(l, n, 0.0);
-                }
-            }
-            lyaps_sum[l] = 0.0;
-            lyaps_time[l] = 0.0;
-            lyaps_time_prev[l] = discrete_time;
-        }
-    }
-    void normalization_reset () {
-        GramSmidt ();
-        for (long i=0;i<vars_tilda.s1();i++) {
-            lyaps_sum[i] = 0.0;
-            lyaps_time[i] = 0.0;
-            lyaps_time_prev[i] = discrete_time;
-        }
-    }
-    void GramSmidt () {
-        for (long l=0;l<vars_tilda.s1();l++) {
-            for (long j=0;j<l;j++) {
-                double prod = 0.0;
-                for (long h=0;h<vars_tilda.s0();h++) {
-                    for (long n=0;n<vars_tilda.s2();n++) {
-                        prod += vars_tilda.get_delayed(h, l, n) * vars_tilda.get_delayed(h, j, n);
-                    }
-                }
-                for (long h=0;h<vars_tilda.s0();h++) {
-                    for (long n=0;n<vars_tilda.s2();n++) {
-                        vars_tilda.correct(h, l, n, vars_tilda.get_delayed(h, l, n) - prod * vars_tilda.get_delayed(h, j, n));
-                    }
-                }
-            }
-            double normsq = 0.0;
-            for (long h=0;h<vars_tilda.s0();h++) {
-                for (long n=0;n<vars_tilda.s2();n++) {
-                    double temp_val = vars_tilda.get_delayed(h, l, n);
-                    normsq += temp_val * temp_val;
-                }
-            }
-            double norm = sqrt(normsq);
-            for (long h=0;h<vars_tilda.s0();h++) {
-                for (long n=0;n<vars_tilda.s2();n++) {
-                    vars_tilda.correct(h, l, n, vars_tilda.get_delayed(h, l, n)/norm);
-                }
-            }
-            lyaps_sum[l] += log(norm);
-            lyaps_time[l] += (discrete_time-lyaps_time_prev[l])*dt;
-            lyaps_time_prev[l] = discrete_time;
-        }
-    }
-    void lyap_init () {
-        calc_lyap = true;
-    }
-    bool is_LCE_calced () {
-        return calc_lyap;
-    }
-    double l(long i) { if (i<vars_tilda.s1()) return lyaps_sum[i]/lyaps_time[i]; return 0.0; }
     virtual void function (long, double, long) = 0;
-    double get_vars (long i1) {
-        return vars.get(i1);
-    }
-    double get_time (long i1) {
-        return vars.get_time(i1);
-    }
-    double get_entropy_vars (long i1) {
-        return vars.get_entropy(i1);
-    }
-    double get_entropy2_vars (long i1) {
-        return vars.get_entropy2(i1);
-    }
-    double get_prob_dens_vars (long i1, long win_number) {
-        return vars.get_prob_dens(i1, win_number);
-    }
-    double get_prob_right_vars (long i1, long win_number) {
-        return vars.get_prob_right(i1, win_number);
-    }
-    double get_prob_left_vars (long i1, long win_number) {
-        return vars.get_prob_left(i1, win_number);
-    }
-    void prob_init_vars (long i1, long set_win_size) {
-        vars.prob_init(i1, set_win_size);
-    }
-    void update_stat_vars (long i1) {
-        vars.update_stat(i1);
-    }
-    long lyapnumber() {
-        return vars_tilda.s1();
-    }
-    long varnumber() {
-        return vars.s1();
-    }
-    void init_minima (long i1) {
-        vars.init_minima(i1);
-    }
-    void init_minimaRR (long i1) {
-        vars.init_minimaRR(i1);
-    }
-    void init_maxima (long i1) {
-        vars.init_maxima(i1);
-    }
-    void init_maximaRR (long i1) {
-        vars.init_maximaRR(i1);
-    }
-    void init_minima (long i1, double value_to_send) {
-        vars.init_minima(i1, value_to_send);
-    }
-    void init_minimaRR (long i1, double value_to_send) {
-        vars.init_minimaRR(i1, value_to_send);
-    }
-    void init_maxima (long i1, double value_to_send) {
-        vars.init_maxima(i1, value_to_send);
-    }
-    void init_maximaRR (long i1, double value_to_send) {
-        vars.init_maximaRR(i1, value_to_send);
-    }
-    void get_minima (long i1, bool &result, double &time, double &value) {
-        vars.get_minima(i1, result, time, value);
-    }
-    void get_minimaRR (long i1, bool &result, double &time, double &value) {
-        vars.get_minimaRR(i1, result, time, value);
-    }
-    void get_maxima (long i1, bool &result, double &time, double &value) {
-        vars.get_maxima(i1, result, time, value);
-    }
+    void resize_and_init (long set_size, long set_nvars, long set_nLCE, long set_nk);
+    void calc_amplitude ();
+    void normalization_init ();
+    void normalization_reset ();
+    void GramSmidt ();
+    void lyap_init () { calc_lyap = true; }
+    bool is_LCE_calced () { return calc_lyap; }
+    double l(long i) { if (i<vars_tilda.s1()) return lyaps_sum[i]/lyaps_time[i]; return 0.0; }
+    double getdt () { return dt; }
+    double get_vars (long i1) { return vars.get(i1); }
+    double get_time (long i1) { return vars.get_time(i1); }
+    double get_entropy_vars (long i1) { return vars.get_entropy(i1); }
+    double get_entropy2_vars (long i1) { return vars.get_entropy2(i1); }
+    double get_prob_dens_vars (long i1, long win_number) { return vars.get_prob_dens(i1, win_number); }
+    double get_prob_right_vars (long i1, long win_number) { return vars.get_prob_right(i1, win_number); }
+    double get_prob_left_vars (long i1, long win_number) { return vars.get_prob_left(i1, win_number); }
+    void prob_init_vars (long i1, long set_win_size) { vars.prob_init(i1, set_win_size); }
+    void update_stat_vars (long i1) { vars.update_stat(i1); }
+    long lyapnumber() { return vars_tilda.s1(); }
+    long varnumber() { return vars.s1(); }
+    void init_minima (long i1) { vars.init_minima(i1); }
+    void init_minimaRR (long i1) { vars.init_minimaRR(i1); }
+    void init_maxima (long i1) { vars.init_maxima(i1); }
+    void init_maximaRR (long i1) { vars.init_maximaRR(i1); }
+    void init_minima (long i1, double value_to_send) { vars.init_minima(i1, value_to_send); }
+    void init_minimaRR (long i1, double value_to_send) { vars.init_minimaRR(i1, value_to_send); }
+    void init_maxima (long i1, double value_to_send) { vars.init_maxima(i1, value_to_send); }
+    void init_maximaRR (long i1, double value_to_send) { vars.init_maximaRR(i1, value_to_send); }
+    void get_minima (long i1, bool &result, double &time, double &value) { vars.get_minima(i1, result, time, value); }
+    void get_minimaRR (long i1, bool &result, double &time, double &value) { vars.get_minimaRR(i1, result, time, value); }
+    void get_maxima (long i1, bool &result, double &time, double &value) { vars.get_maxima(i1, result, time, value); }
     void get_maximaRR (long i1, bool &result, double &time, double &value) { vars.get_maximaRR(i1, result, time, value); }
     long get_bins_number (long i1) { return vars.get_bins_number(i1); }
     long get_bins_number_minima (long i1) { return vars.get_bins_number_minima(i1); }
@@ -251,5 +122,96 @@ public:
     double extreme_part_outside_minimaRR (long i1, double sigma_in) const {return vars.extreme_part_outside_minimaRR (i1, sigma_in);}
     double extreme_part_outside_maximaRR (long i1, double sigma_in) const {return vars.extreme_part_outside_maximaRR (i1, sigma_in);}
 };
+
+ds::ds () {
+    calc_lyap=false;
+    dt = 0.0;
+    modelname = "ds";
+}
+
+void ds::resize_and_init (long set_size, long set_nvars, long set_nLCE, long set_nk) {
+    if (set_size<1)
+        throw std::invalid_argument("Vector size must be positive (from ds)\n");
+    if (set_nvars<1)
+        throw std::invalid_argument("Model size must be positive (from ds)\n");
+    if (set_nk<1)
+        throw std::invalid_argument("Temporal buffer must be positive (from ds)\n");
+    if (set_nLCE<0)
+        throw std::invalid_argument("LCE buffer must be non-negative (from ds)\n");
+    val.resize(set_size, 0.0);
+    vars.resize(set_size, set_nvars);
+    all_vars_temp.resize(set_nk, 1+set_nLCE, set_nvars);
+    if ((calc_lyap)&&(set_nLCE>0)) {
+        vars_tilda.resize(set_size, set_nLCE, set_nvars);
+        lyaps_sum.resize(set_nLCE, 0.0);
+        lyaps_time.resize(set_nLCE, 0.0);
+        lyaps_time_prev.resize(set_nLCE, 0.0);
+    }
+}
+
+void ds::calc_amplitude () {
+    double sumsq = 0.0;
+    for (long n=0;n<vars.s1();n++) {
+        sumsq += vars.get(n)*vars.get(n);
+    }
+    val[marker] = sqrt(sumsq);
+}
+
+void ds::normalization_init () {
+    for (long l=0;l<vars_tilda.s1();l++) {
+        for (long n=0;n<vars_tilda.s2();n++) {
+            for (long h=0;h<vars_tilda.s0();h++) {
+                if (l==n) vars_tilda.step(l, n, 1.0);
+                else vars_tilda.step(l, n, 0.0);
+            }
+        }
+        lyaps_sum[l] = 0.0;
+        lyaps_time[l] = 0.0;
+        lyaps_time_prev[l] = discrete_time;
+    }
+}
+
+void ds::normalization_reset () {
+    GramSmidt ();
+    for (long i=0;i<vars_tilda.s1();i++) {
+        lyaps_sum[i] = 0.0;
+        lyaps_time[i] = 0.0;
+        lyaps_time_prev[i] = discrete_time;
+    }
+}
+
+void ds::GramSmidt () {
+    for (long l=0;l<vars_tilda.s1();l++) {
+        for (long j=0;j<l;j++) {
+            double prod = 0.0;
+            for (long h=0;h<vars_tilda.s0();h++) {
+                for (long n=0;n<vars_tilda.s2();n++) {
+                    prod += vars_tilda.get_delayed(h, l, n) * vars_tilda.get_delayed(h, j, n);
+                }
+            }
+            for (long h=0;h<vars_tilda.s0();h++) {
+                for (long n=0;n<vars_tilda.s2();n++) {
+                    vars_tilda.correct(h, l, n, vars_tilda.get_delayed(h, l, n) - prod * vars_tilda.get_delayed(h, j, n));
+                }
+            }
+        }
+        double normsq = 0.0;
+        for (long h=0;h<vars_tilda.s0();h++) {
+            for (long n=0;n<vars_tilda.s2();n++) {
+                double temp_val = vars_tilda.get_delayed(h, l, n);
+                normsq += temp_val * temp_val;
+            }
+        }
+        double norm = sqrt(normsq);
+        for (long h=0;h<vars_tilda.s0();h++) {
+            for (long n=0;n<vars_tilda.s2();n++) {
+                vars_tilda.correct(h, l, n, vars_tilda.get_delayed(h, l, n)/norm);
+            }
+        }
+        lyaps_sum[l] += log(norm);
+        lyaps_time[l] += (discrete_time-lyaps_time_prev[l])*dt;
+        lyaps_time_prev[l] = discrete_time;
+    }
+}
 
 #endif
