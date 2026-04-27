@@ -13,17 +13,19 @@ public:
     ~researcher() = default;
     /*Методы для класса FHNsimple*/
     void TS0xy_x0_y0_alpha_epsilon_dt_t0_t1 (double x0, double y0, double alpha, double epsilon, double dt, long t0, long t1);
+    void TS0xyLCE_x0_y0_alpha_epsilon_dt_t0_t1_everyL (double x0, double y0, double alpha, double epsilon, double dt, long t0, long t1, long everyL);
     void PP0xy_x0_y0_alpha_epsilon_dt_t0_t1 (double x0, double y0, double alpha, double epsilon, double dt, long t0, long t1);
+    void PP0xyLCE_x0_y0_alpha_epsilon_dt_t0_t1_everyL (double x0, double y0, double alpha, double epsilon, double dt, long t0, long t1, long everyL);
     /*Методы для класса Rulkov_map*/
     void TS0xy_x0_y0_alpha_mu_sigma_t0_t1 (double x0, double y0, double alpha, double mu, double sigma, long t0, long t1);
-    void TS0xyLCE_x0_y0_alpha_mu_sigma_t0_t1 (double x0, double y0, double alpha, double mu, double sigma, long t0, long t1);
+    void TS0xyLCE_x0_y0_alpha_mu_sigma_t0_t1_everyL (double x0, double y0, double alpha, double mu, double sigma, long t0, long t1, long everyL);
     void PP0xy_x0_y0_alpha_mu_sigma_t0_t1 (double x0, double y0, double alpha, double mu, double sigma, long t0, long t1);
-    void PP0xyLCE_x0_y0_alpha_mu_sigma_t0_t1 (double x0, double y0, double alpha, double mu, double sigma, long t0, long t1);
+    void PP0xyLCE_x0_y0_alpha_mu_sigma_t0_t1_everyL (double x0, double y0, double alpha, double mu, double sigma, long t0, long t1, long everyL);
     void PDF0x_x0_y0_alpha_mu_sigma_t0_t1_winsize (double x0, double y0, double alpha, double mu, double sigma, long t0, long t1, long PDF_win_size);
     void X0onS_s0_ds_s1_x0_y0_alpha_mu_t0_t1 (double s0, double ds, double s1, double x0, double y0, double alpha, double mu, long t0, long t1);
     void X0onA_a0_da_a1_x0_y0_mu_sigma_t0_t1 (double a0, double da, double a1, double x0, double y0, double mu, double sigma, long t0, long t1);
-    void L12onS_s0_ds_s1_x0_y0_alpha_mu_t0_t1 (double s0, double ds, double s1, double x0, double y0, double alpha, double mu, long t0, long t1);
-    void L12onA_a0_da_a1_x0_y0_mu_sigma_t0_t1 (double a0, double da, double a1, double x0, double y0, double mu, double sigma, long t0, long t1);
+    void L12onS_s0_ds_s1_x0_y0_alpha_mu_t0_t1_everyL (double s0, double ds, double s1, double x0, double y0, double alpha, double mu, long t0, long t1, long everyL);
+    void L12onA_a0_da_a1_x0_y0_mu_sigma_t0_t1_everyL (double a0, double da, double a1, double x0, double y0, double mu, double sigma, long t0, long t1, long everyL);
     void ExonS_s0_ds_s1_x0_y0_alpha_mu_t0_t1_winsize (double s0, double ds, double s1, double x0, double y0, double alpha, double mu, long t0, long t1, long ws);
     void ExonA_a0_da_a1_x0_y0_mu_sigma_t0_t1_winsize (double a0, double da, double a1, double x0, double y0, double mu, double sigma, long t0, long t1, long ws);
     void Min0x_x0_y0_alpha_mu_sigma_t0_t1(double x0, double y0, double alpha, double mu, double sigma, long t0, long t1);
@@ -69,6 +71,50 @@ void researcher<specificmodel>::TS0xy_x0_y0_alpha_epsilon_dt_t0_t1 (double x0, d
 }
 
 template <typename specificmodel>
+void researcher<specificmodel>::TS0xyLCE_x0_y0_alpha_epsilon_dt_t0_t1_everyL (double x0, double y0, double alpha, double epsilon, double dt, long t0, long t1, long everyL) {
+    specificmodel model;
+    model.lyap_init();
+    model.set_par_a(alpha);
+    model.set_par_e(epsilon);
+    model.set_buffer_size(2);
+    model.set_x0(x0);
+    model.set_y0(y0);
+    model.set_dt(dt);
+    std::stringstream datfile, pngfile;
+    datfile << "TS0xy" << model.get_basename() << ".dat";
+    pngfile << "TS0xy" << model.get_basename() << ".png";
+    std::ofstream datafile;
+    datafile.open(datfile.str());
+    model.normalization_init();
+    long every = (t1-t0)/100000;
+    if (every==0) every = 1;
+    for (long t = 0; t <= t1; t++) {
+        if ( (t>=t0) && ((t%every) == 0) ) {
+            datafile << t*model.getdt();
+            for (long n = 0; n < model.varnumber(); n++) {
+                if ( (n == 0) || (n == 1) )
+                    datafile << " " << model.get_vars(n);
+            }
+            datafile << "\n";
+        }
+        model.step();
+        if (t==t0) model.normalization_reset();
+        else {
+            if ((t%everyL) == 0)
+            model.GramSmidt();
+        }
+    }
+    model.GramSmidt();
+    datafile.close();
+    std::stringstream plot_command;
+    plot_command << "gnuplot << EOF\nset terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; unset warnings; set key tmargin center horizontal; set xlabel 't'; set ylabel 'x, y'; set output '" << pngfile.str() << "'; stat '" << datfile.str() << "' u 2:3 nooutput; maxval = (STATS_max_x>STATS_max_y)?STATS_max_x:STATS_max_y; minval = (STATS_min_x<STATS_min_y)?STATS_min_x:STATS_min_y; range = maxval-minval; set yrange [minval - 0.05 * range : maxval + 0.05 * range]; ";
+    plot_command << "set label 'L0 = " << model.l(0) << "' at screen 0.2,0.95;  set label 'L1 = " << model.l(1) << "' at screen 0.7,0.95; ";
+    plot_command << "plot '" << datfile.str() << "' u 1:2 w l lw 3 lc rgb 0x008040 title 'x(t)', '' u 1:3 w l lw 3 lc rgb 0x8b0000 title 'y(t)';\nEOF";
+    std::cout << "\nGnuplot:\n" << plot_command.str() << "\n\n";
+    std::system (plot_command.str().c_str());
+}
+
+template <typename specificmodel>
 void researcher<specificmodel>::PP0xy_x0_y0_alpha_epsilon_dt_t0_t1 (double x0, double y0, double alpha, double epsilon, double dt, long t0, long t1) {
     specificmodel model;
     model.set_par_a(alpha);
@@ -104,6 +150,50 @@ void researcher<specificmodel>::PP0xy_x0_y0_alpha_epsilon_dt_t0_t1 (double x0, d
 }
 
 template <typename specificmodel>
+void researcher<specificmodel>::PP0xyLCE_x0_y0_alpha_epsilon_dt_t0_t1_everyL (double x0, double y0, double alpha, double epsilon, double dt, long t0, long t1, long everyL) {
+    specificmodel model;
+    model.lyap_init();
+    model.set_par_a(alpha);
+    model.set_par_e(epsilon);
+    model.set_buffer_size(2);
+    model.set_x0(x0);
+    model.set_y0(y0);
+    model.set_dt(dt);
+    std::stringstream datfile, pngfile;
+    datfile << "PP0xyLCE" << model.get_basename() << ".dat";
+    pngfile << "PP0xyLCE" << model.get_basename() << ".png";
+    std::ofstream datafile;
+    datafile.open(datfile.str());
+    model.normalization_init();
+    long every = (t1-t0)/100000;
+    if (every==0) every = 1;
+    for (long t = 0; t <= t1; t++) {
+        if ( (t>=t0) && ((t%every) == 0) ) {
+            datafile << t*model.getdt();
+            for (long n = 0; n < model.varnumber(); n++) {
+                if ( (n == 0) || (n == 1) )
+                    datafile << " " << model.get_vars(n);
+            }
+            datafile << "\n";
+        }
+        model.step();
+        if (t==t0) model.normalization_reset();
+        else {
+            if ((t%everyL) == 0)
+            model.GramSmidt();
+        }
+    }
+    model.GramSmidt();
+    datafile.close();
+    std::stringstream plot_command;
+    plot_command << "gnuplot << EOF\nset terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; unset warnings; set key tmargin center horizontal; set xlabel 'x'; set ylabel 'y'; set output '" << pngfile.str() << "'; stat '" << datfile.str() << "' u 2:3 nooutput; xrange = STATS_max_x-STATS_min_x; yrange = STATS_max_y-STATS_min_y; set xrange [STATS_min_x-0.05*xrange:STATS_max_x+0.05*xrange]; set yrange [STATS_min_y-0.05*yrange:STATS_max_y+0.05*yrange]; ";
+    plot_command << "set label 'L0 = " << model.l(0) << "' at screen 0.2,0.95;  set label 'L1 = " << model.l(1) << "' at screen 0.7,0.95; ";
+    plot_command << "plot '" << datfile.str() << "' u 2:3 w l lw 3 lc rgb 0x50191970 title 'y(x)';\nEOF";
+    std::cout << "\nGnuplot:\n" << plot_command.str() << "\n\n";
+    std::system (plot_command.str().c_str());
+}
+
+template <typename specificmodel>
 void researcher<specificmodel>::TS0xy_x0_y0_alpha_mu_sigma_t0_t1 (double x0, double y0, double alpha, double mu, double sigma, long t0, long t1) {
     specificmodel model;
     model.set_par_a(alpha);
@@ -130,6 +220,7 @@ void researcher<specificmodel>::TS0xy_x0_y0_alpha_mu_sigma_t0_t1 (double x0, dou
         }
         model.step();
     }
+    model.GramSmidt();
     datafile.close();
     std::stringstream plot_command;
     plot_command << "gnuplot << EOF\nset terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; unset warnings; set key tmargin center horizontal; set xlabel 't'; set ylabel 'x, y'; set output '" << pngfile.str() << "'; stat '" << datfile.str() << "' u 2:3 nooutput; maxval = (STATS_max_x>STATS_max_y)?STATS_max_x:STATS_max_y; minval = (STATS_min_x<STATS_min_y)?STATS_min_x:STATS_min_y; range = maxval-minval; set yrange [minval - 0.05 * range : maxval + 0.05 * range]; ";
@@ -139,7 +230,7 @@ void researcher<specificmodel>::TS0xy_x0_y0_alpha_mu_sigma_t0_t1 (double x0, dou
 }
 
 template <typename specificmodel>
-void researcher<specificmodel>::TS0xyLCE_x0_y0_alpha_mu_sigma_t0_t1 (double x0, double y0, double alpha, double mu, double sigma, long t0, long t1) {
+void researcher<specificmodel>::TS0xyLCE_x0_y0_alpha_mu_sigma_t0_t1_everyL (double x0, double y0, double alpha, double mu, double sigma, long t0, long t1, long everyL) {
     specificmodel model;
     model.lyap_init();
     model.set_par_a(alpha);
@@ -167,7 +258,10 @@ void researcher<specificmodel>::TS0xyLCE_x0_y0_alpha_mu_sigma_t0_t1 (double x0, 
         }
         model.step();
         if (t==t0) model.normalization_reset();
-        else model.GramSmidt();
+        else {
+            if ((t%everyL) == 0)
+            model.GramSmidt();
+        }
     }
     model.GramSmidt();
     datafile.close();
@@ -214,7 +308,7 @@ void researcher<specificmodel>::PP0xy_x0_y0_alpha_mu_sigma_t0_t1 (double x0, dou
 }
 
 template <typename specificmodel>
-void researcher<specificmodel>::PP0xyLCE_x0_y0_alpha_mu_sigma_t0_t1 (double x0, double y0, double alpha, double mu, double sigma, long t0, long t1) {
+void researcher<specificmodel>::PP0xyLCE_x0_y0_alpha_mu_sigma_t0_t1_everyL (double x0, double y0, double alpha, double mu, double sigma, long t0, long t1, long everyL) {
     specificmodel model;
     model.lyap_init();
     model.set_par_a(alpha);
@@ -241,7 +335,10 @@ void researcher<specificmodel>::PP0xyLCE_x0_y0_alpha_mu_sigma_t0_t1 (double x0, 
         }
         model.step();
         if (t==t0) model.normalization_reset();
-        else model.GramSmidt();
+        else {
+            if ((t%everyL) == 0)
+            model.GramSmidt();
+        }
     }
     model.GramSmidt();
     datafile.close();
@@ -445,7 +542,7 @@ void researcher<specificmodel>::X0onA_a0_da_a1_x0_y0_mu_sigma_t0_t1 (double a0, 
 }
 
 template <typename specificmodel>
-void researcher<specificmodel>::L12onS_s0_ds_s1_x0_y0_alpha_mu_t0_t1 (double s0, double ds, double s1, double x0, double y0, double alpha, double mu, long t0, long t1) {
+void researcher<specificmodel>::L12onS_s0_ds_s1_x0_y0_alpha_mu_t0_t1_everyL (double s0, double ds, double s1, double x0, double y0, double alpha, double mu, long t0, long t1, long everyL) {
     std::stringstream datfile_for, datfile_rev, pngfile_for, pngfile_rev, pngfile_both;
     double par_for = s0;
     double par_rev = s1;
@@ -454,6 +551,8 @@ void researcher<specificmodel>::L12onS_s0_ds_s1_x0_y0_alpha_mu_t0_t1 (double s0,
     double y0_for = y0;
     double y0_rev = y0;
     std::ofstream datafile_for, datafile_rev;
+    long every = (t1-t0)/100000;
+    if (every==0) every = 1;
     for (long i = 0; par_for <= s1; i++) {
         specificmodel model_for, model_rev;
         model_for.lyap_init();
@@ -489,8 +588,10 @@ void researcher<specificmodel>::L12onS_s0_ds_s1_x0_y0_alpha_mu_t0_t1 (double s0,
                 model_rev.normalization_reset();
             }
             else {
-                model_for.GramSmidt();
-                model_rev.GramSmidt();
+                if ((t%everyL) == 0) {
+                    model_for.GramSmidt();
+                    model_rev.GramSmidt();
+                }
             }
         }
         model_for.GramSmidt();
@@ -537,7 +638,7 @@ void researcher<specificmodel>::L12onS_s0_ds_s1_x0_y0_alpha_mu_t0_t1 (double s0,
 }
 
 template <typename specificmodel>
-void researcher<specificmodel>::L12onA_a0_da_a1_x0_y0_mu_sigma_t0_t1 (double a0, double da, double a1, double x0, double y0, double mu, double sigma, long t0, long t1) {
+void researcher<specificmodel>::L12onA_a0_da_a1_x0_y0_mu_sigma_t0_t1_everyL (double a0, double da, double a1, double x0, double y0, double mu, double sigma, long t0, long t1, long everyL) {
     std::stringstream datfile_for, datfile_rev, pngfile_for, pngfile_rev, pngfile_both;
     double par_for = a0;
     double par_rev = a1;
@@ -546,6 +647,8 @@ void researcher<specificmodel>::L12onA_a0_da_a1_x0_y0_mu_sigma_t0_t1 (double a0,
     double y0_for = y0;
     double y0_rev = y0;
     std::ofstream datafile_for, datafile_rev;
+    long every = (t1-t0)/100000;
+    if (every==0) every = 1;
     for (long i = 0; par_for <= a1; i++) {
         specificmodel model_for, model_rev;
         model_for.lyap_init();
@@ -581,8 +684,10 @@ void researcher<specificmodel>::L12onA_a0_da_a1_x0_y0_mu_sigma_t0_t1 (double a0,
                 model_rev.normalization_reset();
             }
             else {
-                model_for.GramSmidt();
-                model_rev.GramSmidt();
+                if ((t%everyL) == 0) {
+                    model_for.GramSmidt();
+                    model_rev.GramSmidt();
+                }
             }
         }
         model_for.GramSmidt();
