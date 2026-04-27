@@ -12,6 +12,7 @@ public:
     researcher () = default;
     ~researcher() = default;
     /*Методы для класса FHNsimple*/
+    void PDF0x_x0_y0_alpha_epsilon_dt_t0_t1_winsize (double x0, double y0, double alpha, double epsilon, double dt, long t0, long t1, long PDF_win_size);
     void TS0xy_x0_y0_alpha_epsilon_dt_t0_t1 (double x0, double y0, double alpha, double epsilon, double dt, long t0, long t1);
     void TS0xyLCE_x0_y0_alpha_epsilon_dt_t0_t1_everyL (double x0, double y0, double alpha, double epsilon, double dt, long t0, long t1, long everyL);
     void PP0xy_x0_y0_alpha_epsilon_dt_t0_t1 (double x0, double y0, double alpha, double epsilon, double dt, long t0, long t1);
@@ -26,14 +27,47 @@ public:
     void X0onA_a0_da_a1_x0_y0_mu_sigma_t0_t1 (double a0, double da, double a1, double x0, double y0, double mu, double sigma, long t0, long t1);
     void L12onS_s0_ds_s1_x0_y0_alpha_mu_t0_t1_everyL (double s0, double ds, double s1, double x0, double y0, double alpha, double mu, long t0, long t1, long everyL);
     void L12onA_a0_da_a1_x0_y0_mu_sigma_t0_t1_everyL (double a0, double da, double a1, double x0, double y0, double mu, double sigma, long t0, long t1, long everyL);
-    void ExonS_s0_ds_s1_x0_y0_alpha_mu_t0_t1_winsize (double s0, double ds, double s1, double x0, double y0, double alpha, double mu, long t0, long t1, long ws);
-    void ExonA_a0_da_a1_x0_y0_mu_sigma_t0_t1_winsize (double a0, double da, double a1, double x0, double y0, double mu, double sigma, long t0, long t1, long ws);
+    void E0xonS_s0_ds_s1_x0_y0_alpha_mu_t0_t1_winsize (double s0, double ds, double s1, double x0, double y0, double alpha, double mu, long t0, long t1, long ws);
+    void E0xonA_a0_da_a1_x0_y0_mu_sigma_t0_t1_winsize (double a0, double da, double a1, double x0, double y0, double mu, double sigma, long t0, long t1, long ws);
     void Min0x_x0_y0_alpha_mu_sigma_t0_t1(double x0, double y0, double alpha, double mu, double sigma, long t0, long t1);
     /*Методы для класса levy*/
     void LevySourceStat_alpha_beta_sigma_mu_idum_N (double alpha, double beta, double sigma, double mu, long idum, long N);
     /*Методы для класса poisson*/
     void PoissonSourceStat_alpha_beta_sigma_mu_idum_N (double freq, long idum, long N);
 };
+
+template <typename specificmodel>
+void researcher<specificmodel>::PDF0x_x0_y0_alpha_epsilon_dt_t0_t1_winsize (double x0, double y0, double alpha, double epsilon, double dt, long t0, long t1, long PDF_win_size) {
+    specificmodel model;
+    model.set_par_a(alpha);
+    model.set_par_e(epsilon);
+    model.set_buffer_size(2);
+    model.set_x0(x0);
+    model.set_y0(y0);
+    model.set_dt(dt);
+    model.prob_init_vars(0, PDF_win_size);
+    for (long t = 0; t <= t1; t++) {
+        model.step();
+        if (t>t0) model.update_stat_vars(0);
+    }
+    std::stringstream datfile, pngfile;
+    datfile << "PDF0x" << model.get_basename() << ".dat";
+    pngfile << "PDF0x" << model.get_basename() << ".png";
+    std::ofstream datafile(datfile.str());
+    for (long i = 0; i < model.get_bins_number(0); i++) {
+        double tval = model.get_prob_dens_vars(0, i);
+        if (tval>0.0) {
+            double mid = 0.5 * (model.get_prob_right_vars(0, i) + model.get_prob_left_vars(0, i));
+            double width = model.get_prob_right_vars(0, i) - model.get_prob_left_vars(0, i);
+            datafile << mid << " " << tval << " " << width << "\n";
+        }
+    }
+    datafile.close();
+    std::stringstream plot_command;
+    plot_command << "gnuplot << EOF\nset terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; unset warnings; set key tmargin center horizontal; set xlabel 'x'; set ylabel 'p(x)'; set output '" << pngfile.str() << "'; stat '" << datfile.str() << "' u 1:2 nooutput; maxval = STATS_max_y; set yrange[0:maxval*1.1]; minval = STATS_min_x; maxval = STATS_max_x; range = maxval-minval+0.01; set xrange[minval-0.05*range:maxval+0.05*range]; set label 'entropy = " << model.get_entropy2_vars(0) << " bits' at screen 0.7,0.95; plot '" << datfile.str() << "' u 1:2:3 w boxes lc rgb 0x00556b2f title 'p(x)';\nEOF";
+    std::cout << "\nGnuplot:\n" << plot_command.str() << "\n\n";
+    std::system (plot_command.str().c_str());
+}
 
 template <typename specificmodel>
 void researcher<specificmodel>::TS0xy_x0_y0_alpha_epsilon_dt_t0_t1 (double x0, double y0, double alpha, double epsilon, double dt, long t0, long t1) {
@@ -81,8 +115,8 @@ void researcher<specificmodel>::TS0xyLCE_x0_y0_alpha_epsilon_dt_t0_t1_everyL (do
     model.set_y0(y0);
     model.set_dt(dt);
     std::stringstream datfile, pngfile;
-    datfile << "TS0xy" << model.get_basename() << ".dat";
-    pngfile << "TS0xy" << model.get_basename() << ".png";
+    datfile << "TS0xyLCE" << model.get_basename() << ".dat";
+    pngfile << "TS0xyLCE" << model.get_basename() << ".png";
     std::ofstream datafile;
     datafile.open(datfile.str());
     model.normalization_init();
@@ -734,7 +768,7 @@ void researcher<specificmodel>::L12onA_a0_da_a1_x0_y0_mu_sigma_t0_t1_everyL (dou
 }
 
 template <typename specificmodel>
-void researcher<specificmodel>::ExonS_s0_ds_s1_x0_y0_alpha_mu_t0_t1_winsize (double s0, double ds, double s1, double x0, double y0, double alpha, double mu, long t0, long t1, long ws) {
+void researcher<specificmodel>::E0xonS_s0_ds_s1_x0_y0_alpha_mu_t0_t1_winsize (double s0, double ds, double s1, double x0, double y0, double alpha, double mu, long t0, long t1, long ws) {
     std::stringstream datfile_for, datfile_rev, pngfile_for, pngfile_rev, pngfile_both;
     double par_for = s0;
     double par_rev = s1;
@@ -758,11 +792,11 @@ void researcher<specificmodel>::ExonS_s0_ds_s1_x0_y0_alpha_mu_t0_t1_winsize (dou
         model_for.set_y0(y0_for);
         model_rev.set_y0(y0_rev);
         if (i==0) {
-            datfile_for << "ExonSv" << model_for.get_basename() << ".dat";
-            datfile_rev << "ExonSv" << model_for.get_basename() << "_rev.dat";
-            pngfile_for << "ExonSv" << model_for.get_basename() << ".png";
-            pngfile_rev << "ExonSv" << model_for.get_basename() << "_rev.png";
-            pngfile_both << "ExonSv" << model_for.get_basename() << "_both.png";
+            datfile_for << "E0xonSv" << model_for.get_basename() << ".dat";
+            datfile_rev << "E0xonSv" << model_for.get_basename() << "_rev.dat";
+            pngfile_for << "E0xonSv" << model_for.get_basename() << ".png";
+            pngfile_rev << "E0xonSv" << model_for.get_basename() << "_rev.png";
+            pngfile_both << "E0xonSv" << model_for.get_basename() << "_both.png";
             datafile_for.open(datfile_for.str());
             datafile_rev.open(datfile_rev.str());
         }
@@ -824,7 +858,7 @@ void researcher<specificmodel>::ExonS_s0_ds_s1_x0_y0_alpha_mu_t0_t1_winsize (dou
 }
 
 template <typename specificmodel>
-void researcher<specificmodel>::ExonA_a0_da_a1_x0_y0_mu_sigma_t0_t1_winsize (double a0, double da, double a1, double x0, double y0, double mu, double sigma, long t0, long t1, long ws) {
+void researcher<specificmodel>::E0xonA_a0_da_a1_x0_y0_mu_sigma_t0_t1_winsize (double a0, double da, double a1, double x0, double y0, double mu, double sigma, long t0, long t1, long ws) {
     std::stringstream datfile_for, datfile_rev, pngfile_for, pngfile_rev, pngfile_both;
     double par_for = a0;
     double par_rev = a1;
@@ -848,11 +882,11 @@ void researcher<specificmodel>::ExonA_a0_da_a1_x0_y0_mu_sigma_t0_t1_winsize (dou
         model_for.set_y0(y0_for);
         model_rev.set_y0(y0_rev);
         if (i==0) {
-            datfile_for << "ExonAv" << model_for.get_basename() << ".dat";
-            datfile_rev << "ExonAv" << model_for.get_basename() << "_rev.dat";
-            pngfile_for << "ExonAv" << model_for.get_basename() << ".png";
-            pngfile_rev << "ExonAv" << model_for.get_basename() << "_rev.png";
-            pngfile_both << "ExonAv" << model_for.get_basename() << "_both.png";
+            datfile_for << "E0xonAv" << model_for.get_basename() << ".dat";
+            datfile_rev << "E0xonAv" << model_for.get_basename() << "_rev.dat";
+            pngfile_for << "E0xonAv" << model_for.get_basename() << ".png";
+            pngfile_rev << "E0xonAv" << model_for.get_basename() << "_rev.png";
+            pngfile_both << "E0xonAv" << model_for.get_basename() << "_both.png";
             datafile_for.open(datfile_for.str());
             datafile_rev.open(datfile_rev.str());
         }
