@@ -4,15 +4,17 @@
 #include "ds.h"
 
 class oscillatorRK4 : public ds {
+protected:
+    bool dt_def;
 public:
     oscillatorRK4 ();
     ~oscillatorRK4 () = default;
     void step ();
-    void set_dt (double set_dt) { dt = set_dt; }
+    void set_dt (double set_dt) { dt = set_dt; dt_def = true; }
 };
 
 oscillatorRK4::oscillatorRK4 () {
-    dt = 0.0001;
+    dt_def = false;
     modelname = "oscillatorRK4";
 }
 

@@ -1,5 +1,3 @@
-//Убрать сложные методы в конец файла
-
 #ifndef EXTREMA_H
 #define EXTREMA_H
 
@@ -20,39 +18,33 @@ protected:
     std::vector<double> val;
     std::vector<double> val_raw;
 public:
-    extrema () {
-        marker = -1;
-        marker_raw = -1;
-        discrete_time = -1;
-        discrete_time_raw = -1;
-        initialized = false;
-        lasttimeisfound = false;
-    }
+    extrema ();
     ~extrema() = default;
-    void step () {
-        throw std::invalid_argument("Object extrema isn't designed to use empty step()\n");
-    }
-    long size() {
-        return val.size();
-    }
-    void resize (long set_size) {
-        val.resize(set_size, 0.0);
-        val_raw.resize(set_size, 0.0);
-    }
-    void init () {
-        if (val.size()>1) {
-            initialized = true;
-            corr_init();
-            stat_init();
-            prob_init();
-        }
-        else
-            throw std::invalid_argument("The size of val should be not less than 2 (from maximaRR)\n");
-    }
-    void set_limit_value (double limit_value_new) {
-        limit_value = limit_value_new;
-    }
-
+    void step () { throw std::invalid_argument("Object extrema isn't designed to use empty step()\n"); }
+    long size() { return val.size(); }
+    void resize (long set_size) { val.resize(set_size, 0.0); val_raw.resize(set_size, 0.0); }
+    void init ();
+    void set_limit_value (double limit_value_new) { limit_value = limit_value_new; }
 };
+
+extrema::extrema () {
+    marker = -1;
+    marker_raw = -1;
+    discrete_time = -1;
+    discrete_time_raw = -1;
+    initialized = false;
+    lasttimeisfound = false;
+}
+
+void extrema::init () {
+    if (val.size()>1) {
+        initialized = true;
+        corr_init();
+        stat_init();
+        prob_init();
+    }
+    else
+        throw std::invalid_argument("The size of val should be not less than 2 (from maximaRR)\n");
+}
 
 #endif

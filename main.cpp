@@ -1,13 +1,17 @@
 #include "researcher.h"
-#include "FHNsimple.h"
-#include "Rulkov_map.h"
-#include "levy.h"
-#include "poisson.h"
+// #include "FHNsimple.h"
+#include "FHNpoisson.h"
+// #include "Rulkov_map.h"
+// #include "levy.h"
+// #include "poisson.h"
 
 //Программный комплекс опубликован https://github.com/buhandrey/ProcessSimulator
 
 int main() {
-    researcher<FHNsimple> fhn;
+    researcher<FHNpoisson> fhn_p;
+    fhn_p.TS0xy_x0_y0_alpha_epsilon_dt_fp_ap_t0_t1 (-1.05, -0.664125, 1.05, 0.001, 0.0001, 0.01, 1.1, 8e5, 9e5);
+    fhn_p.PP0xy_x0_y0_alpha_epsilon_dt_fp_ap_t0_t1 (-1.05, -0.664125, 1.05, 0.001, 0.0001, 0.01, 1.1, 8e5, 9e5);
+    // researcher<FHNsimple> fhn;
     // fhn.PDF0x_x0_y0_alpha_epsilon_dt_t0_t1_winsize (-0.89, -0.657, 0.9, 0.001, 0.0001, 1e7, 1e8, 501);
     // fhn.TS0xy_x0_y0_alpha_epsilon_dt_t0_t1 (-0.89, -0.657, 0.9, 0.001, 0.0001, 998e5, 1e8);
     // fhn.PP0xyLCE_x0_y0_alpha_epsilon_dt_t0_t1_everyL (-0.89, -0.657, 0.9, 0.001, 0.0001, 99e6, 1e8, 100);

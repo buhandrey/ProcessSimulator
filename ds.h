@@ -125,7 +125,7 @@ public:
 
 ds::ds () {
     calc_lyap=false;
-    dt = 0.0;
+    dt = 1.0;
     modelname = "ds";
 }
 

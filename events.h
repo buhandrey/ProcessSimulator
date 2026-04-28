@@ -10,6 +10,7 @@ public:
     void step (double new_value);
     void update_stat ();
     void get (bool &result, double &time, double &value);
+    void is_there_event (bool &result);
 };
 
 void events::step (double new_value) {
@@ -57,6 +58,13 @@ void events::get (bool &result, double &time, double &value) {
         if (d_marker<0) d_marker += val.size();
         value = val[marker] - val[d_marker];
         time = discrete_time_raw - (val.size() / 2);
+        result = true;
+    }
+}
+
+void events::is_there_event (bool &result) {
+    result = false;
+    if (lasttimeisfound) {
         result = true;
     }
 }

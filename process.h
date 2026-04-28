@@ -1,5 +1,3 @@
-//Убрать сложные методы в конец файла
-
 #ifndef PROCESS_H
 #define PROCESS_H
 
@@ -30,55 +28,19 @@ protected:
     maximaRR local_maximaRR;
     std::string modelname;
 public:
-    process () {
-        marker = -1;
-        discrete_time = -1;
-        initialized = false;
-        calc_minima = false;
-        calc_minimaRR = false;
-        calc_maxima = false;
-        calc_maximaRR = false;
-        modelname = "process";
-    }
+    process ();
     ~process() = default;
     std::string get_modelname () { return modelname;}
     virtual std::string get_basename () = 0;
-    void update_stat () {
-        bool buffer_is_full = false;
-        long marker_y = marker + 1;
-        if (marker_y == val.size())
-            marker_y = 0;
-        if (discrete_time>val.size()) {
-            buffer_is_full = true;
-        }
-        update_values(val[marker], val[marker_y], buffer_is_full);
-    }
+    void update_stat ();
     virtual void step () = 0;
-    double var() const { return val[marker]; }
-    double var(long delay) const { if (delay<val.size()) { long d_marker = marker - delay; if (d_marker<0) d_marker+=val.size(); return val[d_marker];} else throw std::invalid_argument("Delay is larger than the buffer size (from process)\n"); return 0.0; }
+    double var() const;
+    double var(long delay) const;
     long time_int() const { return discrete_time; }
-    long size() {
-        return val.size();
-    }
-    void resize (long set_size) {
-        val.resize(set_size, 0.0);
-    }
-    void init () {
-        if (val.size()>1)
-            initialized = true;
-        else
-            throw std::invalid_argument("The size of val should be not less than 2 (from process)\n");
-    }
-    void substep () {
-        if (calc_minima)
-            local_minima.step(val[marker]);
-        if (calc_minimaRR)
-            local_minimaRR.step(val[marker]);
-        if (calc_maxima)
-            local_maxima.step(val[marker]);
-        if (calc_maximaRR)
-            local_maximaRR.step(val[marker]);
-    }
+    long size() { return val.size(); }
+    void resize (long set_size) { val.resize(set_size, 0.0); }
+    void init ();
+    void substep ();
     long get_bins_number_minima () { return local_minima.get_bins_number(); }
     long get_bins_number_minimaRR () { return local_minimaRR.get_bins_number(); }
     long get_bins_number_maxima () { return local_maxima.get_bins_number(); }
@@ -156,5 +118,60 @@ public:
     double extreme_part_outside_minimaRR (double sigma_in) const {if (!calc_minimaRR) return 0.0; return local_minimaRR.extreme_part_outside (sigma_in);}
     double extreme_part_outside_maximaRR (double sigma_in) const {if (!calc_maximaRR) return 0.0; return local_maximaRR.extreme_part_outside (sigma_in);}
 };
+
+process::process () {
+    marker = -1;
+    discrete_time = -1;
+    initialized = false;
+    calc_minima = false;
+    calc_minimaRR = false;
+    calc_maxima = false;
+    calc_maximaRR = false;
+    modelname = "process";
+}
+
+void process::update_stat () {
+    bool buffer_is_full = false;
+    long marker_y = marker + 1;
+    if (marker_y == val.size())
+        marker_y = 0;
+    if (discrete_time>val.size()) {
+        buffer_is_full = true;
+    }
+    update_values(val[marker], val[marker_y], buffer_is_full);
+}
+
+double process::var() const {
+    return val[marker];
+}
+
+double process::var(long delay) const {
+    if (delay<val.size()) {
+        long d_marker = marker - delay;
+        if (d_marker<0) d_marker+=val.size();
+        return val[d_marker];
+    }
+    else
+        throw std::invalid_argument("Delay is larger than the buffer size (from process)\n");
+        return 0.0;
+}
+
+void process::init () {
+    if (val.size()>1)
+        initialized = true;
+    else
+        throw std::invalid_argument("The size of val should be not less than 2 (from process)\n");
+}
+
+void process::substep () {
+    if (calc_minima)
+        local_minima.step(val[marker]);
+    if (calc_minimaRR)
+        local_minimaRR.step(val[marker]);
+    if (calc_maxima)
+        local_maxima.step(val[marker]);
+    if (calc_maximaRR)
+        local_maximaRR.step(val[marker]);
+}
 
 #endif
