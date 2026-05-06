@@ -36,7 +36,7 @@ void buffer::step (double new_value) {
         marker = (marker + 1) % val.size();
         discrete_time++;
         val[marker] = new_value;
-        substep();
+        substep(1.0);
     }
     else {
         throw std::invalid_argument("Object buffer isn't defined before use\n");

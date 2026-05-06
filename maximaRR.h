@@ -7,12 +7,12 @@ class maximaRR : public extrema {
 public:
     maximaRR () { limit_value = -1.0e12; }
     ~maximaRR() = default;
-    void step (double new_value);
+    void step (double new_value, double dt);
     void update_stat ();
     void get (bool &result, double &time, double &value);
 };
 
-void maximaRR::step (double new_value) {
+void maximaRR::step (double new_value, double dt) {
     if (initialized) {
         long max_size = val_raw.size();
         marker_raw = (marker_raw + 1) % max_size;
@@ -30,7 +30,8 @@ void maximaRR::step (double new_value) {
                 lasttimeisfound = true;
                 marker = (marker + 1) % max_size;
                 discrete_time++;
-                val[marker] = discrete_time_raw - half_delay;
+                std::cout << "dt=" << dt << "\n";
+                val[marker] = (discrete_time_raw - half_delay)*dt;
                 if (discrete_time==0)
                     lasttimeisfound = false;
                 else
@@ -41,7 +42,7 @@ void maximaRR::step (double new_value) {
         }
     }
     else {
-        throw std::invalid_argument("Object buffer isn't defined before use\n");
+        throw std::invalid_argument("Object maximaRR isn't defined before use\n");
     }
 }
 

@@ -11,16 +11,17 @@ class researcher {
 public:
     researcher () = default;
     ~researcher() = default;
-    /*Методы для класса FHNpoisson*/
+    /*Сценарии для класса FHNpoisson*/
     void TS0xy_x0_y0_alpha_epsilon_dt_fp_ap_t0_t1 (double x0, double y0, double alpha, double epsilon, double dt, double fp, double ap, long t0, long t1);
     void PP0xy_x0_y0_alpha_epsilon_dt_fp_ap_t0_t1 (double x0, double y0, double alpha, double epsilon, double dt, double fp, double ap, long t0, long t1);
-    /*Методы для класса FHNsimple*/
+    void Max0x_x0_y0_alpha_epsilon_dt_fp_ap_t0_t1_t1TS (double x0, double y0, double alpha, double epsilon, double dt, double fp, double ap, long t0, long t1, long t1TS);
+    /*Сценарии для класса FHNsimple*/
     void PDF0x_x0_y0_alpha_epsilon_dt_t0_t1_winsize (double x0, double y0, double alpha, double epsilon, double dt, long t0, long t1, long PDF_win_size);
     void TS0xy_x0_y0_alpha_epsilon_dt_t0_t1 (double x0, double y0, double alpha, double epsilon, double dt, long t0, long t1);
     void TS0xyLCE_x0_y0_alpha_epsilon_dt_t0_t1_everyL (double x0, double y0, double alpha, double epsilon, double dt, long t0, long t1, long everyL);
     void PP0xy_x0_y0_alpha_epsilon_dt_t0_t1 (double x0, double y0, double alpha, double epsilon, double dt, long t0, long t1);
     void PP0xyLCE_x0_y0_alpha_epsilon_dt_t0_t1_everyL (double x0, double y0, double alpha, double epsilon, double dt, long t0, long t1, long everyL);
-    /*Методы для класса Rulkov_map*/
+    /*Сценарии для класса Rulkov_map*/
     void TS0xy_x0_y0_alpha_mu_sigma_t0_t1 (double x0, double y0, double alpha, double mu, double sigma, long t0, long t1);
     void TS0xyLCE_x0_y0_alpha_mu_sigma_t0_t1_everyL (double x0, double y0, double alpha, double mu, double sigma, long t0, long t1, long everyL);
     void PP0xy_x0_y0_alpha_mu_sigma_t0_t1 (double x0, double y0, double alpha, double mu, double sigma, long t0, long t1);
@@ -33,11 +34,109 @@ public:
     void E0xonS_s0_ds_s1_x0_y0_alpha_mu_t0_t1_winsize (double s0, double ds, double s1, double x0, double y0, double alpha, double mu, long t0, long t1, long ws);
     void E0xonA_a0_da_a1_x0_y0_mu_sigma_t0_t1_winsize (double a0, double da, double a1, double x0, double y0, double mu, double sigma, long t0, long t1, long ws);
     void Min0x_x0_y0_alpha_mu_sigma_t0_t1(double x0, double y0, double alpha, double mu, double sigma, long t0, long t1);
-    /*Методы для класса levy*/
+    /*Сценарии для класса levy*/
     void LevySourceStat_alpha_beta_sigma_mu_idum_N (double alpha, double beta, double sigma, double mu, long idum, long N);
-    /*Методы для класса poisson*/
+    /*Сценарии для класса poisson*/
     void PoissonSourceStat_alpha_beta_sigma_mu_idum_N (double freq, long idum, long N);
 };
+
+template <typename specificmodel>
+void researcher<specificmodel>::Max0x_x0_y0_alpha_epsilon_dt_fp_ap_t0_t1_t1TS (double x0, double y0, double alpha, double epsilon, double dt, double fp, double ap, long t0, long t1, long t1TS) {
+    specificmodel model;
+    model.set_par_a(alpha);
+    model.set_par_e(epsilon);
+    model.set_buffer_size(2);
+    model.set_x0(x0);
+    model.set_y0(y0);
+    model.set_dt(dt);
+    model.set_poisson(fp, ap);
+    std::stringstream datfile, sttfile, datfileMAX, datfileMAXt, pngfile;
+    datfile << "TS0x" << model.get_basename() << ".dat";
+    sttfile << "STAT0x" << model.get_basename() << ".dat";
+    datfileMAX << "TS0xMAX" << model.get_basename() << ".dat";
+    datfileMAXt << "TS0xMAXt" << model.get_basename() << ".dat";
+    pngfile << "TS0x" << model.get_basename() << ".png";
+    std::ofstream datafile(datfile.str());
+    std::ofstream datafileMAX(datfileMAX.str());
+    std::ofstream datafileMAXt(datfileMAXt.str());
+    long every = (t1TS-t0)/100000;
+    if (every==0) every = 1;
+    for (long i = 0; i <= t1; i++) {
+        if (i==t0) {
+            model.init_maxima(0, 0.0);
+            model.init_maximaRR(0, 0.0);
+        }
+        model.step();
+        if (i>=t0) {
+            long var = 0; bool cs; double ct; double cx;
+            model.get_maxima(0, cs, ct, cx);
+            if (cs) datafileMAX << model.getdt() * (ct + t0) << " " << cx << "\n";
+            model.get_maximaRR(0, cs, ct, cx);
+            if (cs) datafileMAXt << model.getdt() * (ct + t0) << " " << cx << "\n";
+            if (((i % every) == 0)&&(i<=t1TS)) datafile << model.getdt() * model.get_time(0) << " " << model.get_vars(0) << "\n";
+        }
+    }
+    datafile.close();
+    datafileMAX.close();
+    datafileMAXt.close();
+    std::ofstream statfile(sttfile.str());
+    statfile << "meanA    " << model.stat_get_mean_maxima(0) << "\n";
+    statfile << "sigmaA   " << model.stat_get_disp_root_maxima(0) << "\n";
+    statfile << "skewA    " << model.stat_get_skew_maxima(0) << "\n";
+    statfile << "kurtA    " << model.stat_get_kurt_maxima(0) << "\n";
+    statfile << "entropyA " << model.get_entropy_maxima(0) << "\n";
+    statfile << "outof3sA " << model.extreme_part_outside_maxima(0, 3.0) << "\n";
+    statfile << "outof5sA " << model.extreme_part_outside_maxima(0, 5.0) << "\n";
+    statfile << "outof7sA " << model.extreme_part_outside_maxima(0, 7.0) << "\n";
+    statfile << "meanT    " << model.stat_get_mean_maximaRR(0) << "\n";
+    statfile << "sigmaT   " << model.stat_get_disp_root_maximaRR(0) << "\n";
+    statfile << "skewT    " << model.stat_get_skew_maximaRR(0) << "\n";
+    statfile << "kurtT    " << model.stat_get_kurt_maximaRR(0) << "\n";
+    statfile << "entropyT " << model.get_entropy_maximaRR(0) << "\n";
+    statfile << "outof3sT " << model.extreme_part_outside_maximaRR(0, 3.0) << "\n";
+    statfile << "outof5sT " << model.extreme_part_outside_maximaRR(0, 5.0) << "\n";
+    statfile << "outof7sT " << model.extreme_part_outside_maximaRR(0, 7.0) << "\n";
+    std::stringstream plot_command;
+    plot_command << "gnuplot << EOF\nset terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; unset warnings; set key tmargin center horizontal; set xlabel 't'; set ylabel 'x, y'; set output '" << pngfile.str() << "'; stat '" << datfile.str() << "' u 1:2 nooutput; range = STATS_max_y-STATS_min_y; set yrange [STATS_min_y - 0.05 * range : STATS_max_y + 0.05 * range]; ";
+    plot_command << "set xrange [:" << t1TS*dt << "]; ";
+    plot_command << "plot '" << datfile.str() << "' u 1:2 w l lw 3 lc rgb 0x008040 title 'x(t)', '" << datfileMAX.str() << "' u 1:2 w p pt 5 ps 1 lc rgb 'black' title 'maxima';\nEOF";
+    std::cout << "\nGnuplot:\n" << plot_command.str() << "\n\n";
+    std::system (plot_command.str().c_str());
+    std::stringstream probAdat, probApng;
+    probAdat << "Prob0xAmax" << model.get_basename() << ".dat";
+    probApng << "Prob0xAmax" << model.get_basename() << ".png";
+    std::ofstream datafileA(probAdat.str());
+    for (long i = 0; i < model.get_bins_number_maxima(0); i++) {
+        double tval = model.get_prob_dens_maxima(0, i);
+        if (tval>0.0) {
+            double mid = 0.5 * (model.get_prob_right_maxima(0, i) + model.get_prob_left_maxima(0, i));
+            double width = model.get_prob_right_maxima(0, i) - model.get_prob_left_maxima(0, i);
+            datafileA << mid << " " << tval << " " << width << "\n";
+        }
+    }
+    datafileA.close();
+    std::stringstream plot_command2;
+    plot_command2 << "gnuplot << EOF\nset terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; unset warnings; set key tmargin center horizontal; set xlabel 'x'; set ylabel 'p(x)'; set output '" << probApng.str() << "'; stat '" << probAdat.str() << "' u 1:2 nooutput; maxval = STATS_max_y; set yrange[0:maxval*1.1]; minval = STATS_min_x; maxval = STATS_max_x; range = maxval-minval+0.01; set xrange[minval-0.05*range:maxval+0.05*range]; set label 'entropy = " << model.get_entropy2_maxima(0) << " bits' at screen 0.7,0.95; plot '" << probAdat.str() << "' u 1:2:3 w boxes lc rgb 0x00556b2f title 'p(x)';\nEOF";
+    std::cout << "\nGnuplot:\n" << plot_command2.str() << "\n\n";
+    std::system (plot_command2.str().c_str());
+    std::stringstream probTdat, probTpng;
+    probTdat << "Prob0xTmax" << model.get_basename() << ".dat";
+    probTpng << "Prob0xTmax" << model.get_basename() << ".png";
+    std::ofstream datafileT(probTdat.str());
+    for (long i = 0; i < model.get_bins_number_maximaRR(0); i++) {
+        double tval = model.get_prob_dens_maximaRR(0, i);
+        if (tval>0.0) {
+            double mid = 0.5 * (model.get_prob_right_maximaRR(0, i) + model.get_prob_left_maximaRR(0, i));
+            double width = (model.get_prob_right_maximaRR(0, i) - model.get_prob_left_maximaRR(0, i));
+            datafileT << mid << " " << tval << " " << width << "\n";
+        }
+    }
+    datafileT.close();
+    std::stringstream plot_command3;
+    plot_command3 << "gnuplot << EOF\nset terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; unset warnings; set key tmargin center horizontal; set xlabel 'Δt'; set ylabel 'p(Δt)'; set output '" << probTpng.str() << "'; stat '" << probTdat.str() << "' u 1:2 nooutput; maxval = STATS_max_y; set yrange[0:maxval*1.1]; minval = STATS_min_x; maxval = STATS_max_x; range = maxval-minval+0.01; set xrange[minval-0.05*range:maxval+0.05*range]; set label 'entropy = " << model.get_entropy2_maximaRR(0) << " bits' at screen 0.7,0.95; plot '" << probTdat.str() << "' u 1:2:3 w boxes lc rgb 0x00556b2f title 'p(Δt)';\nEOF";
+    std::cout << "\nGnuplot:\n" << plot_command3.str() << "\n\n";
+    std::system (plot_command3.str().c_str());
+}
 
 template <typename specificmodel>
 void researcher<specificmodel>::TS0xy_x0_y0_alpha_epsilon_dt_fp_ap_t0_t1 (double x0, double y0, double alpha, double epsilon, double dt, double fp, double ap, long t0, long t1) {
@@ -1043,18 +1142,18 @@ void researcher<specificmodel>::Min0x_x0_y0_alpha_mu_sigma_t0_t1 (double x0, dou
     long every = (t1-t0)/100000;
     if (every==0) every = 1;
     for (long i = 0; i <= t1; i++) {
-        model.step();
         if (i==t0) {
             model.init_minima(0, -1.5);
             model.init_minimaRR(0, -1.5);
         }
+        model.step();
         if (i>=t0) {
             long var = 0; bool cs; double ct; double cx;
             model.get_minima(0, cs, ct, cx);
-            if (cs) datafileMIN << ct + t0 << " " << cx << "\n";
+            if (cs) datafileMIN << model.getdt() * (ct + t0) << " " << cx << "\n";
             model.get_minimaRR(0, cs, ct, cx);
-            if (cs) datafileMINt << ct + t0 << " " << cx << "\n";
-            if ((i % every) == 0) datafile << model.get_time(0) << " " << model.get_vars(0) << "\n";
+            if (cs) datafileMINt << model.getdt() * (ct + t0) << " " << cx << "\n";
+            if ((i % every) == 0) datafile << model.getdt() * model.get_time(0) << " " << model.get_vars(0) << "\n";
         }
     }
     datafile.close();
@@ -1113,7 +1212,7 @@ void researcher<specificmodel>::Min0x_x0_y0_alpha_mu_sigma_t0_t1 (double x0, dou
     }
     datafileT.close();
     std::stringstream plot_command3;
-    plot_command3 << "gnuplot << EOF\nset terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; unset warnings; set key tmargin center horizontal; set xlabel 'x'; set ylabel 'p(x)'; set output '" << probTpng.str() << "'; stat '" << probTdat.str() << "' u 1:2 nooutput; maxval = STATS_max_y; set yrange[0:maxval*1.1]; minval = STATS_min_x; maxval = STATS_max_x; range = maxval-minval+0.01; set xrange[minval-0.05*range:maxval+0.05*range]; set label 'entropy = " << model.get_entropy2_minimaRR(0) << " bits' at screen 0.7,0.95; plot '" << probTdat.str() << "' u 1:2:3 w boxes lc rgb 0x00556b2f title 'p(x)';\nEOF";
+    plot_command3 << "gnuplot << EOF\nset terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; unset warnings; set key tmargin center horizontal; set xlabel 'Δt'; set ylabel 'p(Δt)'; set output '" << probTpng.str() << "'; stat '" << probTdat.str() << "' u 1:2 nooutput; maxval = STATS_max_y; set yrange[0:maxval*1.1]; minval = STATS_min_x; maxval = STATS_max_x; range = maxval-minval+0.01; set xrange[minval-0.05*range:maxval+0.05*range]; set label 'entropy = " << model.get_entropy2_minimaRR(0) << " bits' at screen 0.7,0.95; plot '" << probTdat.str() << "' u 1:2:3 w boxes lc rgb 0x00556b2f title 'p(Δt)';\nEOF";
     std::cout << "\nGnuplot:\n" << plot_command3.str() << "\n\n";
     std::system (plot_command3.str().c_str());
 }

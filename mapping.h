@@ -22,7 +22,7 @@ void mapping::step () {
         marker = (marker + 1) % val.size();
         discrete_time++;
         calc_amplitude ();
-        substep();
+        substep(dt);
     }
     else {
         throw std::invalid_argument("Object mapping isn't defined before use\n");

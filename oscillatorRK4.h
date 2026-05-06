@@ -20,6 +20,7 @@ oscillatorRK4::oscillatorRK4 () {
 
 void oscillatorRK4::step () {
     if (initialized) {
+        // std::cout << "dt=" << dt << "\n";
         function (0, 0.0, 0);
         function (0, 0.5*dt, 1);
         function (1, 0.5*dt, 2);
@@ -43,7 +44,7 @@ void oscillatorRK4::step () {
         marker = (marker + 1) % val.size();
         discrete_time++;
         calc_amplitude ();
-        substep();
+        substep(dt);
     }
     else {
         throw std::invalid_argument("Object oscillatorRK4 isn't defined before use\n");

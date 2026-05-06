@@ -40,7 +40,7 @@ public:
     long size() { return val.size(); }
     void resize (long set_size) { val.resize(set_size, 0.0); }
     void init ();
-    void substep ();
+    void substep (double dt);
     long get_bins_number_minima () { return local_minima.get_bins_number(); }
     long get_bins_number_minimaRR () { return local_minimaRR.get_bins_number(); }
     long get_bins_number_maxima () { return local_maxima.get_bins_number(); }
@@ -163,15 +163,16 @@ void process::init () {
         throw std::invalid_argument("The size of val should be not less than 2 (from process)\n");
 }
 
-void process::substep () {
+void process::substep (double dt) {
+    std::cout << "dt=" << dt << "\n";
     if (calc_minima)
         local_minima.step(val[marker]);
     if (calc_minimaRR)
-        local_minimaRR.step(val[marker]);
+        local_minimaRR.step(val[marker], dt);
     if (calc_maxima)
         local_maxima.step(val[marker]);
     if (calc_maximaRR)
-        local_maximaRR.step(val[marker]);
+        local_maximaRR.step(val[marker], dt);
 }
 
 #endif

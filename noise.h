@@ -20,7 +20,7 @@ void noise::step () {
             marker = 0;
         discrete_time++;
         val[marker] = generator ();
-        substep();
+        substep(1.0);
     }
     else {
         throw std::invalid_argument("Object noise isn't defined before use\n");

@@ -7,12 +7,12 @@ class minimaRR : public extrema {
 public:
     minimaRR () { limit_value = 1.0e12; }
     ~minimaRR() = default;
-    void step (double new_value);
+    void step (double new_value, double dt);
     void update_stat ();
     void get (bool &result, double &time, double &value);
 };
 
-void minimaRR::step (double new_value) {
+void minimaRR::step (double new_value, double dt) {
     if (initialized) {
         long max_size = val_raw.size();
         marker_raw = (marker_raw + 1) % max_size;
