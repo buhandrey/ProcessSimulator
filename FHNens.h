@@ -1,6 +1,7 @@
 #ifndef FHN_ENS_H
 #define FHN_ENS_H
 
+#include <omp.h>
 #include <vector>
 #include <cmath>
 #include <random>
@@ -17,11 +18,6 @@ struct FHNDeriv {
     double dx, dy;
 };
 
-struct FHNInput {
-    double ix = 0.0;
-    double iy = 0.0;
-};
-
 struct FHNParams {
     double R = 0.1;
     double I = 0.5;
@@ -33,56 +29,101 @@ struct FHNParams {
     double poisson_x_a = 0.0;
 };
 
-inline FHNDeriv rhs (const FHNState& s, const FHNParams& p, const FHNInput& in) {
+inline FHNDeriv rhs (const FHNState& s, const FHNParams& p, const FHNState& in) {
     return {
-        (s.x * (1.0 - s.x * s.x / 3.0) - s.y + p.R * p.I + in.ix) / p.epsilon,
-        s.x + p.alpha - p.beta * s.y + in.iy
+        (s.x * (1.0 - s.x * s.x / 3.0) - s.y + p.R * p.I + in.x) / p.epsilon,
+        s.x + p.alpha - p.beta * s.y + in.y
     };
 }
 
-class FHNens {
+class FHNbuffer {
+    int size;
+    int marker;
+    bool filled;
+    double th_x;
+    double refractory;
+    double lastspiketime;
+    std::vector<FHNState> h;
+    std::vector<double> time;
 public:
-    int N1 = 0, N2 = 0, M = 0;
-    std::vector<std::vector<std::vector<FHNState>>> state;
-    std::vector<std::vector<std::vector<FHNParams>>> pars;
-    std::vector<std::vector<std::vector<FHNState>>> tmp;
-    std::vector<std::vector<std::vector<double>>> tx_event;
-    std::vector<std::vector<std::vector<double>>> dW;
-    std::vector<int> coup_sigma_P_x;
-    std::vector<double> coup_sigma_x;
-    std::vector<std::vector<double>> coup_gamma_x;
-    FHNens () {
-        N1 = 0;
-        N2 = 0;
-        M = 0;
+    FHNbuffer () {
+        size = 20;
+        marker = size-1;
+        filled = false;
+        th_x = 0.5;
+        refractory = 1.0;
+        lastspiketime = -1.0e3;
+        h.resize(size);
+        time.resize(size);
     }
-    void resize (int newN1, int newN2, int newM) {
-        N1 = newN1; N2 = newN2; M = newM;
-        state.resize (N1);
-        pars.resize (N1);
-        tmp.resize (N1);
-        tx_event.resize(N1);
-        dW.resize(N1);
-        for (int n1 = 0; n1 < N1; n1++) {
-            state[n1].resize (N2);
-            pars[n1].resize (N2);
-            tmp[n1].resize (N2);
-            tx_event[n1].resize(N2);
-            dW[n1].resize(N2);
-            for (int n2 = 0; n2 < N2; n2++) {
-                state[n1][n2].resize (M);
-                pars[n1][n2].resize (M);
-                tmp[n1][n2].resize (M);
-                tx_event[n1][n2].resize (M);
-                dW[n1][n2].resize (M);
-                for (int m = 0; m < M; m++) {
-                    tx_event[n1][n2][m] = 0.0;
-                }
+    void push (const FHNState& val_in, double t_in) {
+        if (marker == 0) filled = true;
+        marker = (marker + 1) % size;
+        h[marker] = val_in;
+        time[marker] = t_in;
+    }
+    void correct (const FHNState& val_in) {
+        h[marker] = val_in;
+    }
+    bool detect_max_x (double &x_out, double &t_out) {
+        int n = filled ? size : marker+1;
+        if (n < size) return false;
+        int check = (marker + size/2) % size;
+        if (h[check].x<th_x) return false;
+        int check_left = (check - 1 + size) % size;
+        int check_right = (check + 1) % size;
+        double dxleft = h[check].x - h[check_left].x;
+        double dxright = h[check].x - h[check_right].x;
+        if ((dxleft<0.0) || (dxright<0.0)) return false;
+        for (int shift = 1-size/2; shift<(size/2); shift++) {
+            int compared = (check + shift + size) % size;
+            if (shift<0) {
+                if (fabs(h[compared].x-h[check].x)<dxleft) return false;
+            }
+            if (shift>0) {
+                if (fabs(h[compared].x-h[check].x)<dxright) return false;
             }
         }
-        coup_sigma_x.resize (M);
-        coup_sigma_P_x.resize (M);
-        coup_gamma_x.resize (M, std::vector<double> (M, 0.0));
+        if ((time[check]-lastspiketime) < refractory) return false;
+        x_out = h[check].x;
+        t_out = time[check];
+        lastspiketime = time[check];
+        return true;
+    }
+};
+
+class FHNens {
+public:
+    long N1 = 0, N2 = 0, M = 0, TN;
+    std::vector<FHNState> tmp;
+    std::vector<FHNState> state;
+    std::vector<FHNParams> pars;
+    std::vector<FHNbuffer> hist;
+    std::vector<long> n_spikes;
+    std::vector<long> n_input;
+    std::vector<double> tx_event;
+    std::vector<double> dW;
+    std::vector<int> coup_sigma_P_x;
+    std::vector<double> coup_sigma_x;
+    std::vector<double> coup_gamma_x;
+    FHNens () { N1 = 0; N2 = 0; M = 0; TN = 0; }
+    void resize (int newN1, int newN2, int newM) {
+        N1 = newN1; N2 = newN2; M = newM;
+        TN = N1 * N2 * M;
+        tmp.resize(TN);
+        state.resize(TN);
+        pars.resize(TN);
+        hist.resize(TN);
+        tx_event.resize(TN);
+        dW.resize(TN);
+        n_spikes.resize(TN);
+        n_input.resize(TN);
+        coup_sigma_x.resize(M);
+        coup_sigma_P_x.resize(M);
+        coup_gamma_x.resize(M*M);
+    }
+    long 3Dto1D (long n1, long n2, long m) {
+        return (n1 * N2 + n2) * M + m;
     }
     void randomIC (double rx, double ry) {
         std::mt19937 gen(std::random_device{}());
@@ -93,6 +134,7 @@ public:
                     double theta = dist(gen);
                     state[n1][n2][m].x = rx * std::cos(theta);
                     state[n1][n2][m].y = ry * std::sin(theta);
+                    hist[n1][n2][m].push(state[n1][n2][m], 0.0);
                 }
             }
         }
@@ -103,6 +145,7 @@ public:
                 for (int m = 0; m < M; m++) {
                     state[n1][n2][m].x = -pars[n1][n2][m].alpha;
                     state[n1][n2][m].y = pars[n1][n2][m].alpha * (pars[n1][n2][m].alpha*pars[n1][n2][m].alpha/3.0 - 1.0);
+                    hist[n1][n2][m].push(state[n1][n2][m], 0.0);
                 }
             }
         }
@@ -121,15 +164,18 @@ public:
         }
     }
     void set_poisson_pars (double new_f, double new_a) {
+        std::mt19937 gen(std::random_device{}());
         for (int n1 = 0; n1 < N1; n1++) {
             for (int n2 = 0; n2 < N2; n2++) {
                 for (int m = 0; m < M; m++) {
                     pars[n1][n2][m].poisson_x_f = new_f;
                     pars[n1][n2][m].poisson_x_a = new_a;
+                    auto &p = pars[n1][n2][m];
+                    std::exponential_distribution<double> exp(p.poisson_x_f);
+                    tx_event[n1][n2][m] = exp(gen);
                 }
             }
         }
-        init_events();
     }
     void set_coup_sigma_x (double new_sigma) {
         for (int m = 0; m < M; m++) set_coup_sigma_x (new_sigma, m);
@@ -162,34 +208,31 @@ public:
             cg += coup_gamma_x[m][m2] * (S[n1][0][m2].x - S[n1][0][m].x);
         return cs + cg;
     }
-    double next_event_time(double freq, std::mt19937& gen) {
-        std::exponential_distribution<double> exp(freq);
-        return exp(gen);
-    }
-    void init_events() {
+    void events (double ct) {
         static thread_local std::mt19937 gen(std::random_device{}());
         for (int n1 = 0; n1 < N1; n1++) for (int n2 = 0; n2 < N2; n2++) for (int m = 0; m < M; m++) {
-            tx_event[n1][n2][m] = next_event_time(pars[n1][n2][m].poisson_x_f, gen);
+            auto &p = pars[n1][n2][m];
+            if (p.poisson_x_f > 0.0) {
+                std::exponential_distribution<double> exp(p.poisson_x_f);
+                while (tx_event[n1][n2][m] <= ct) {
+                    state[n1][n2][m].x += p.poisson_x_a;
+                    hist[n1][n2][m].correct(state[n1][n2][m]);
+                    n_input[n1][n2][m]++;
+                    tx_event[n1][n2][m] += exp(gen);
+                }
+            }
         }
     }
-    void step(double dt) {
+    void step (double dt, double ct) {
         static thread_local std::mt19937 gen(std::random_device{}());
         static thread_local std::normal_distribution<double> normal(0.0, 1.0);
-        for (int n1 = 0; n1 < N1; n1++) for (int n2 = 0; n2 < N2; n2++) for (int m = 0; m < M; m++) {
-             auto &p = pars[n1][n2][m];
-             tx_event[n1][n2][m] -= dt;
-             if (tx_event[n1][n2][m] <= 0.0 && p.poisson_x_f > 0.0) {
-                state[n1][n2][m].x += p.poisson_x_a;
-                std::exponential_distribution<double> exp(p.poisson_x_f);
-                tx_event[n1][n2][m] = exp(gen);
-             }
-        }
+        events (ct);
         for (int n1 = 0; n1 < N1; n1++) for (int n2 = 0; n2 < N2; n2++) for (int m = 0; m < M; m++) {
             auto &s = state[n1][n2][m];
             auto &p = pars[n1][n2][m];
             double cx = coupling_x(n1, m, state);
             dW[n1][n2][m] = std::sqrt(dt) * normal(gen);
-            FHNInput in {cx, 0.0};
+            FHNState in {cx, 0.0};
             auto f0 = rhs(s, p, in);
             tmp[n1][n2][m].x = s.x + dt * f0.dx;
             tmp[n1][n2][m].y = s.y + dt * f0.dy + p.gauss_y_s * dW[n1][n2][m];
@@ -199,46 +242,124 @@ public:
             auto &p = pars[n1][n2][m];
             double cx0 = coupling_x(n1, m, state);
             double cx1 = coupling_x(n1, m, tmp);
-            FHNInput in0 {cx0, 0.0};
-            FHNInput in1 {cx1, 0.0};
+            FHNState in0 {cx0, 0.0};
+            FHNState in1 {cx1, 0.0};
             auto f0 = rhs(s, p, in0);
             auto f1 = rhs(tmp[n1][n2][m], p, in1);
             s.x += 0.5 * dt * (f0.dx + f1.dx);
             s.y += 0.5 * dt * (f0.dy + f1.dy) + p.gauss_y_s * dW[n1][n2][m];
+            hist[n1][n2][m].push(s, ct + dt);
+        }
+        update_spikes ();
+    }
+    void update_spikes () {
+        for (int n1 = 0; n1 < N1; n1++) for (int n2 = 0; n2 < N2; n2++) for (int m = 0; m < M; m++) {
+            double x;
+            double t;
+            if (hist[n1][n2][m].detect_max_x(x, t)) {
+                n_spikes[n1][n2][m]++;
+            }
         }
     }
-    void Ring100 () {
-        resize (100, 1, 1);
-        set_coup_sigma_x (0.0);
-        set_coup_gamma_x (0.0);
-        set_coup_sigma_P_x (1);
-        setFHNpars (1.2, 0.0, 0.01, 0.0, 0.0);
-        equilibriumIC ();
-        set_poisson_pars (0.1, 1.0);
-        double dt = 0.0001;
-        long steps = 50000;
-        long trans = 0;
-        long save_every = 500;
-        std::ofstream fout("spacetime.dat");
-        for (long step_i = 0; step_i < steps; step_i++) {
-            step(dt);
-            double t = step_i * dt;
-            if ((step_i > trans) && (step_i % save_every == 0))
-                for (int n1 = 0; n1 < N1; n1++) fout << t << " " << n1 << " " << state[n1][0][0].x << "\n";
+    void collect_max_x (std::ostream &out) {
+        for (int n1 = 0; n1 < N1; n1++) for (int n2 = 0; n2 < N2; n2++) for (int m = 0; m < M; m++) {
+            double x;
+            double t;
+            if (hist[n1][n2][m].detect_max_x(x, t)) {
+                out << t << " " << n1 << " " << n2 << " " << m << " " << x << "\n";
+            }
         }
-        fout.close();
-        std::stringstream plot_command;
-        plot_command << "gnuplot << 'EOF'\nset terminal pngcairo size 1200,600 enhanced font 'Verdana,20';";
-        plot_command << " unset warnings; set key tmargin center horizontal;";
-        plot_command << " set xlabel 'i'; set ylabel 't'; set cblabel 'x';";
-        plot_command << " set xrange [1:100]; set yrange [:]; set cbrange [-2.5:2.5];";
-        plot_command << " set xtics 20 out; set ytics 1 out; set cbtics 1;";
-        plot_command << " set mxtics 5; set mytics 5; set mcbtics 5;";
-        plot_command << " set output 'spacetime.png';";
-        plot_command << " plot 'spacetime.dat' using (1.0+$2):1:3 w image notitle;\nEOF";
-        std::cout << "\nGnuplot:\n" << plot_command.str() << "\n\n";
-        std::system (plot_command.str().c_str());
     }
 };
+
+void Ring100std () {
+    FHNens ring;
+    ring.resize (100, 1, 1);
+    ring.set_coup_sigma_x (0.0);
+    ring.set_coup_gamma_x (0.0);
+    ring.set_coup_sigma_P_x (1);
+    ring.setFHNpars (1.2, 0.0, 0.01, 0.0, 0.0);
+    ring.equilibriumIC ();
+    double dt = 0.0001;
+    ring.set_poisson_pars (0.5, 1.0);
+    long steps = 200000;
+    long trans = 0;
+    long save_every = 2000;
+    std::ofstream fout("spacetime.dat");
+    std::ofstream sout("spikes.dat");
+    for (long step_i = 0; step_i < steps; step_i++) {
+        ring.step(dt, step_i * dt);
+        if ((step_i > trans) && (step_i % save_every == 0))
+            for (int n1 = 0; n1 < ring.N1; n1++) fout << step_i * dt << " " << n1 << " " << ring.state[n1][0][0].x << "\n";
+        ring.collect_max_x(sout);
+    }
+    sout.close();
+    fout.close();
+    std::stringstream plot_command;
+    plot_command << "gnuplot << 'EOF'\nset terminal pngcairo size 1200,600 enhanced font 'Verdana,20';";
+    plot_command << " set key tmargin center horizontal;";
+    plot_command << " set xlabel 'i'; set ylabel 't'; set cblabel 'x';";
+    plot_command << " set xrange [0.5:100.5]; set yrange [:]; set cbrange [-2.5:2.5];";
+    plot_command << " set xtics 20 out; set ytics 10 out; set cbtics 1;";
+    plot_command << " set mxtics 5; set mytics 5; set mcbtics 5;";
+    plot_command << " set output 'spacetime.png';";
+    plot_command << " plot 'spacetime.dat' u (1.0+$2):1:3 w image notitle,";
+    plot_command << " 'spikes.dat' u (1.0+$2):1 w p pt 7 ps 0.9 lc rgb 'white' notitle;\nEOF";
+    std::cout << "\nGnuplot:\n" << plot_command.str() << "\n\n";
+    std::system (plot_command.str().c_str());
+}
+
+void Ring100FoutOnFin () {
+    long nofth = 200;
+    long N1 = 100;
+    double dt = 0.0001;
+    long steps = 10000*5000;
+    std::vector<double> nin;
+    std::vector<double> nout;
+    std::vector<double> freq;
+    nin.resize(nofth);
+    nout.resize(nofth);
+    freq.resize(nofth);
+    #pragma omp parallel for schedule(dynamic)
+    for (long iter = 0; iter < nofth; iter++) {
+        FHNens ring;
+        freq[iter] = pow(10.0, iter*0.025-3.0);
+        ring.resize (N1, 1, 1);
+        ring.set_coup_sigma_x (0.0);
+        ring.set_coup_gamma_x (0.0);
+        ring.set_coup_sigma_P_x (1);
+        ring.setFHNpars (1.2, 0.0, 0.01, 0.0, 0.0);
+        ring.equilibriumIC ();
+        ring.set_poisson_pars (freq[iter], 1.0);
+        for (long step_i = 0; step_i < steps; step_i++) {
+            ring.step(dt, step_i * dt);
+        }
+        nin[iter] = 0.0;
+        nout[iter] = 0.0;
+        for (int n1 = 0; n1 < N1; n1++) {
+            nin[iter] += ring.n_input[n1][0][0];
+            nout[iter] += ring.n_spikes[n1][0][0];
+        }
+    }
+    std::ofstream fout("FoutOnFin.dat");
+    for (long iter = 0; iter < nofth; iter++) {
+        fout << freq[iter] << " " << nin[iter]/(steps*dt*N1) << " " << nout[iter]/(steps*dt*N1) << "\n";
+    }
+    fout.close();
+    std::stringstream plot_command;
+    plot_command << "gnuplot << 'EOF'\nset terminal pngcairo size 1200,600 enhanced font 'Verdana,20';";
+    plot_command << " set key tmargin center horizontal;";
+    plot_command << " set xlabel 'f(Poisson)'; set ylabel 'f(sp)';";
+    plot_command << " set log; set xrange [1.0e-3:1.0]; set yrange [:];";
+    plot_command << " set output 'FoutOnFin.png';";
+    plot_command << " plot 'FoutOnFin.dat' u 1:3 w l lw 3 notitle;\nEOF";
+    std::cout << "\nGnuplot:\n" << plot_command.str() << "\n\n";
+    std::system (plot_command.str().c_str());
+}
+
+void Ring100 () {
+    //Ring100std ();
+    Ring100FoutOnFin ();
+}
 
 #endif
