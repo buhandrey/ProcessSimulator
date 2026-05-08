@@ -122,8 +122,11 @@ public:
         coup_sigma_P_x.resize(M);
         coup_gamma_x.resize(M*M);
     }
-    long 3Dto1D (long n1, long n2, long m) {
+    long d3to1 (long n1, long n2, long m) {
         return (n1 * N2 + n2) * M + m;
+    }
+    long d2to1 (long m1, long m2) {
+        return m1 * M + m2;
     }
     void randomIC (double rx, double ry) {
         std::mt19937 gen(std::random_device{}());
@@ -132,9 +135,9 @@ public:
             for (int n2 = 0; n2 < N2; n2++) {
                 for (int m = 0; m < M; m++) {
                     double theta = dist(gen);
-                    state[n1][n2][m].x = rx * std::cos(theta);
-                    state[n1][n2][m].y = ry * std::sin(theta);
-                    hist[n1][n2][m].push(state[n1][n2][m], 0.0);
+                    state[d3to1 (n1, n2, m)].x = rx * std::cos(theta);
+                    state[d3to1 (n1, n2, m)].y = ry * std::sin(theta);
+                    hist[d3to1 (n1, n2, m)].push(state[d3to1 (n1, n2, m)], 0.0);
                 }
             }
         }
@@ -143,9 +146,9 @@ public:
         for (int n1 = 0; n1 < N1; n1++) {
             for (int n2 = 0; n2 < N2; n2++) {
                 for (int m = 0; m < M; m++) {
-                    state[n1][n2][m].x = -pars[n1][n2][m].alpha;
-                    state[n1][n2][m].y = pars[n1][n2][m].alpha * (pars[n1][n2][m].alpha*pars[n1][n2][m].alpha/3.0 - 1.0);
-                    hist[n1][n2][m].push(state[n1][n2][m], 0.0);
+                    state[d3to1 (n1, n2, m)].x = -pars[d3to1 (n1, n2, m)].alpha;
+                    state[d3to1 (n1, n2, m)].y = pars[d3to1 (n1, n2, m)].alpha * (pars[d3to1 (n1, n2, m)].alpha*pars[d3to1 (n1, n2, m)].alpha/3.0 - 1.0);
+                    hist[d3to1 (n1, n2, m)].push(state[d3to1 (n1, n2, m)], 0.0);
                 }
             }
         }
@@ -154,11 +157,11 @@ public:
         for (int n1 = 0; n1 < N1; n1++) {
             for (int n2 = 0; n2 < N2; n2++) {
                 for (int m = 0; m < M; m++) {
-                    pars[n1][n2][m].alpha = new_alpha;
-                    pars[n1][n2][m].beta = new_beta;
-                    pars[n1][n2][m].epsilon = new_epsilon;
-                    pars[n1][n2][m].I = new_I;
-                    pars[n1][n2][m].R = new_R;
+                    pars[d3to1 (n1, n2, m)].alpha = new_alpha;
+                    pars[d3to1 (n1, n2, m)].beta = new_beta;
+                    pars[d3to1 (n1, n2, m)].epsilon = new_epsilon;
+                    pars[d3to1 (n1, n2, m)].I = new_I;
+                    pars[d3to1 (n1, n2, m)].R = new_R;
                 }
             }
         }
@@ -168,11 +171,11 @@ public:
         for (int n1 = 0; n1 < N1; n1++) {
             for (int n2 = 0; n2 < N2; n2++) {
                 for (int m = 0; m < M; m++) {
-                    pars[n1][n2][m].poisson_x_f = new_f;
-                    pars[n1][n2][m].poisson_x_a = new_a;
-                    auto &p = pars[n1][n2][m];
+                    pars[d3to1 (n1, n2, m)].poisson_x_f = new_f;
+                    pars[d3to1 (n1, n2, m)].poisson_x_a = new_a;
+                    auto &p = pars[d3to1 (n1, n2, m)];
                     std::exponential_distribution<double> exp(p.poisson_x_f);
-                    tx_event[n1][n2][m] = exp(gen);
+                    tx_event[d3to1 (n1, n2, m)] = exp(gen);
                 }
             }
         }
@@ -193,32 +196,32 @@ public:
         for (int m1 = 0; m1 < M; m1++) for (int m2 = 0; m2 < M; m2++) set_coup_gamma_x (new_gamma, m1, m2);
     }
     void set_coup_gamma_x (double new_gamma, int m1, int m2) {
-        coup_gamma_x[m1][m2] = new_gamma;
+        coup_gamma_x[d2to1(m1, m2)] = new_gamma;
     }
-    double coupling_x (int n1, int m, const std::vector<std::vector<std::vector<FHNState>>>& S) {
+    double coupling_x (int n1, int m, const std::vector<FHNState>& S) {
         double cs = 0.0;
         if (N2==1) {
             for (int n1s = n1 - coup_sigma_P_x[m]; n1s <= n1 + coup_sigma_P_x[m]; n1s++) {
                 int j = (n1s + N1) % N1;
-                if (j != n1) cs += coup_sigma_x[m] * (S[j][0][m].x - S[n1][0][m].x);
+                if (j != n1) cs += coup_sigma_x[m] * (S[d3to1 (j, 0, m)].x - S[d3to1 (n1, 0, m)].x);
             }
         }
         double cg = 0.0;
         for (int m2 = 0; m2 < M; m2++)
-            cg += coup_gamma_x[m][m2] * (S[n1][0][m2].x - S[n1][0][m].x);
+            cg += coup_gamma_x[d2to1(m, m2)] * (S[d3to1 (n1, 0, m2)].x - S[d3to1 (n1, 0, m)].x);
         return cs + cg;
     }
     void events (double ct) {
         static thread_local std::mt19937 gen(std::random_device{}());
         for (int n1 = 0; n1 < N1; n1++) for (int n2 = 0; n2 < N2; n2++) for (int m = 0; m < M; m++) {
-            auto &p = pars[n1][n2][m];
+            auto &p = pars[d3to1 (n1, n2, m)];
             if (p.poisson_x_f > 0.0) {
                 std::exponential_distribution<double> exp(p.poisson_x_f);
-                while (tx_event[n1][n2][m] <= ct) {
-                    state[n1][n2][m].x += p.poisson_x_a;
-                    hist[n1][n2][m].correct(state[n1][n2][m]);
-                    n_input[n1][n2][m]++;
-                    tx_event[n1][n2][m] += exp(gen);
+                while (tx_event[d3to1 (n1, n2, m)] <= ct) {
+                    state[d3to1 (n1, n2, m)].x += p.poisson_x_a;
+                    hist[d3to1 (n1, n2, m)].correct(state[d3to1 (n1, n2, m)]);
+                    n_input[d3to1 (n1, n2, m)]++;
+                    tx_event[d3to1 (n1, n2, m)] += exp(gen);
                 }
             }
         }
@@ -228,27 +231,27 @@ public:
         static thread_local std::normal_distribution<double> normal(0.0, 1.0);
         events (ct);
         for (int n1 = 0; n1 < N1; n1++) for (int n2 = 0; n2 < N2; n2++) for (int m = 0; m < M; m++) {
-            auto &s = state[n1][n2][m];
-            auto &p = pars[n1][n2][m];
+            auto &s = state[d3to1 (n1, n2, m)];
+            auto &p = pars[d3to1 (n1, n2, m)];
             double cx = coupling_x(n1, m, state);
-            dW[n1][n2][m] = std::sqrt(dt) * normal(gen);
+            dW[d3to1 (n1, n2, m)] = std::sqrt(dt) * normal(gen);
             FHNState in {cx, 0.0};
             auto f0 = rhs(s, p, in);
-            tmp[n1][n2][m].x = s.x + dt * f0.dx;
-            tmp[n1][n2][m].y = s.y + dt * f0.dy + p.gauss_y_s * dW[n1][n2][m];
+            tmp[d3to1 (n1, n2, m)].x = s.x + dt * f0.dx;
+            tmp[d3to1 (n1, n2, m)].y = s.y + dt * f0.dy + p.gauss_y_s * dW[d3to1 (n1, n2, m)];
         }
         for (int n1 = 0; n1 < N1; n1++) for (int n2 = 0; n2 < N2; n2++) for (int m = 0; m < M; m++) {
-            auto &s = state[n1][n2][m];
-            auto &p = pars[n1][n2][m];
+            auto &s = state[d3to1 (n1, n2, m)];
+            auto &p = pars[d3to1 (n1, n2, m)];
             double cx0 = coupling_x(n1, m, state);
             double cx1 = coupling_x(n1, m, tmp);
             FHNState in0 {cx0, 0.0};
             FHNState in1 {cx1, 0.0};
             auto f0 = rhs(s, p, in0);
-            auto f1 = rhs(tmp[n1][n2][m], p, in1);
+            auto f1 = rhs(tmp[d3to1 (n1, n2, m)], p, in1);
             s.x += 0.5 * dt * (f0.dx + f1.dx);
-            s.y += 0.5 * dt * (f0.dy + f1.dy) + p.gauss_y_s * dW[n1][n2][m];
-            hist[n1][n2][m].push(s, ct + dt);
+            s.y += 0.5 * dt * (f0.dy + f1.dy) + p.gauss_y_s * dW[d3to1 (n1, n2, m)];
+            hist[d3to1 (n1, n2, m)].push(s, ct + dt);
         }
         update_spikes ();
     }
@@ -256,8 +259,8 @@ public:
         for (int n1 = 0; n1 < N1; n1++) for (int n2 = 0; n2 < N2; n2++) for (int m = 0; m < M; m++) {
             double x;
             double t;
-            if (hist[n1][n2][m].detect_max_x(x, t)) {
-                n_spikes[n1][n2][m]++;
+            if (hist[d3to1 (n1, n2, m)].detect_max_x(x, t)) {
+                n_spikes[d3to1 (n1, n2, m)]++;
             }
         }
     }
@@ -265,7 +268,7 @@ public:
         for (int n1 = 0; n1 < N1; n1++) for (int n2 = 0; n2 < N2; n2++) for (int m = 0; m < M; m++) {
             double x;
             double t;
-            if (hist[n1][n2][m].detect_max_x(x, t)) {
+            if (hist[d3to1 (n1, n2, m)].detect_max_x(x, t)) {
                 out << t << " " << n1 << " " << n2 << " " << m << " " << x << "\n";
             }
         }
@@ -290,7 +293,7 @@ void Ring100std () {
     for (long step_i = 0; step_i < steps; step_i++) {
         ring.step(dt, step_i * dt);
         if ((step_i > trans) && (step_i % save_every == 0))
-            for (int n1 = 0; n1 < ring.N1; n1++) fout << step_i * dt << " " << n1 << " " << ring.state[n1][0][0].x << "\n";
+            for (int n1 = 0; n1 < ring.N1; n1++) fout << step_i * dt << " " << n1 << " " << ring.state[ring.d3to1 (n1, 0, 0)].x << "\n";
         ring.collect_max_x(sout);
     }
     sout.close();
@@ -337,8 +340,8 @@ void Ring100FoutOnFin () {
         nin[iter] = 0.0;
         nout[iter] = 0.0;
         for (int n1 = 0; n1 < N1; n1++) {
-            nin[iter] += ring.n_input[n1][0][0];
-            nout[iter] += ring.n_spikes[n1][0][0];
+            nin[iter] += ring.n_input[ring.d3to1 (n1, 0, 0)];
+            nout[iter] += ring.n_spikes[ring.d3to1 (n1, 0, 0)];
         }
     }
     std::ofstream fout("FoutOnFin.dat");
