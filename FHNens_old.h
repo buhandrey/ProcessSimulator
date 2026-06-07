@@ -642,7 +642,7 @@ void RingsFoutOnFinMultiplex3 (long Nloc, long Ploc, double sigmaloc, double gam
     std::system (plot_command2.str().c_str());
 }
 
-void Ring100 () {
+void run () {
     // SingleFHNPoissonTrace(200000, 2.00);
     // Ring100std ();
     // Ring100FoutOnFin ();

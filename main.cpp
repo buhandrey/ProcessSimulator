@@ -1,8 +1,8 @@
-#include "FHNens.h"
+#include "FHNnet65t2.h"
 
 //Программный комплекс опубликован https://github.com/buhandrey/ProcessSimulator
 
 int main() {
-    Ring100();
+    run ();
     return 0;
 }
