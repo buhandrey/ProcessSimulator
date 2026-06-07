@@ -180,6 +180,20 @@ public:
             }
         }
     }
+    void set_poisson_pars (double new_f, double new_a, long layernum) {
+        std::mt19937 gen(std::random_device{}());
+        for (int n1 = 0; n1 < N1; n1++) {
+            for (int n2 = 0; n2 < N2; n2++) {
+                int m = layernum; {
+                    pars[d3to1 (n1, n2, m)].poisson_x_f = new_f;
+                    pars[d3to1 (n1, n2, m)].poisson_x_a = new_a;
+                    auto &p = pars[d3to1 (n1, n2, m)];
+                    std::exponential_distribution<double> exp(p.poisson_x_f);
+                    tx_event[d3to1 (n1, n2, m)] = exp(gen);
+                }
+            }
+        }
+    }
     void set_coup_sigma_x (double new_sigma) {
         for (int m = 0; m < M; m++) set_coup_sigma_x (new_sigma, m);
     }
@@ -209,7 +223,7 @@ public:
         double cg = 0.0;
         for (int m2 = 0; m2 < M; m2++)
             cg += coup_gamma_x[d2to1(m, m2)] * (S[d3to1 (n1, 0, m2)].x - S[d3to1 (n1, 0, m)].x);
-        return cs + cg;
+        return cs / (2.0*coup_sigma_P_x[m]) + cg;
     }
     void events (double ct) {
         static thread_local std::mt19937 gen(std::random_device{}());
@@ -275,165 +289,357 @@ public:
     }
 };
 
-void Ring100std () {
-    FHNens ring;
-    ring.resize (100, 1, 1);
-    ring.setFHNpars (1.2, 0.0, 0.01, 0.0, 0.0);
-    ring.set_coup_sigma_x (0.0);
-    ring.set_coup_sigma_P_x (1);
-    ring.set_coup_gamma_x (0.0);
-    ring.equilibriumIC ();
-    double dt = 0.0001;
-    ring.set_poisson_pars (0.5, 1.0);
-    long steps = 200000;
-    long trans = 0;
-    long save_every = 2000;
-    std::ofstream fout("spacetime.dat");
-    std::ofstream sout("spikes.dat");
-    for (long step_i = 0; step_i < steps; step_i++) {
-        ring.step(dt, step_i * dt);
-        if ((step_i > trans) && (step_i % save_every == 0))
-            for (int n1 = 0; n1 < ring.N1; n1++) fout << step_i * dt << " " << n1 << " " << ring.state[ring.d3to1 (n1, 0, 0)].x << "\n";
-        ring.collect_max_x(sout);
-    }
-    sout.close();
-    fout.close();
-    std::stringstream plot_command;
-    plot_command << "gnuplot << 'EOF'\n";
-    plot_command << "set terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; set key tmargin center horizontal; set xlabel 'i'; set ylabel 't'; set cblabel 'x'; set xrange [0.5:100.5]; set yrange [:]; set cbrange [-2.5:2.5]; set xtics 20 out; set ytics 10 out; set cbtics 1; set mxtics 5; set mytics 5; set mcbtics 5; set output 'spacetime.png'; plot 'spacetime.dat' u (1.0+$2):1:3 w image notitle, 'spikes.dat' u (1.0+$2):1 w p pt 7 ps 0.9 lc rgb 'white' notitle;";
-    plot_command << "\nEOF";
-    std::cout << "\nGnuplot:\n" << plot_command.str() << "\n\n";
-    std::system (plot_command.str().c_str());
-}
+// void Ring100std () {
+//     FHNens ring;
+//     ring.resize (100, 1, 1);
+//     ring.setFHNpars (1.2, 0.0, 0.01, 0.0, 0.0);
+//     ring.set_coup_sigma_x (0.0);
+//     ring.set_coup_sigma_P_x (1);
+//     ring.set_coup_gamma_x (0.0);
+//     ring.equilibriumIC ();
+//     double dt = 0.0001;
+//     ring.set_poisson_pars (0.5, 1.0);
+//     long steps = 200000;
+//     long trans = 0;
+//     long save_every = 2000;
+//     std::ofstream fout("spacetime.dat");
+//     std::ofstream sout("spikes.dat");
+//     for (long step_i = 0; step_i < steps; step_i++) {
+//         ring.step(dt, step_i * dt);
+//         if ((step_i > trans) && (step_i % save_every == 0))
+//             for (int n1 = 0; n1 < ring.N1; n1++) fout << step_i * dt << " " << n1 << " " << ring.state[ring.d3to1 (n1, 0, 0)].x << "\n";
+//         ring.collect_max_x(sout);
+//     }
+//     sout.close();
+//     fout.close();
+//     std::stringstream plot_command;
+//     plot_command << "gnuplot << 'EOF'\n";
+//     plot_command << "set terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; set key tmargin center horizontal; set xlabel 'i'; set ylabel 't'; set cblabel 'x'; set xrange [0.5:100.5]; set yrange [:]; set cbrange [-2.5:2.5]; set xtics 20 out; set ytics 10 out; set cbtics 1; set mxtics 5; set mytics 5; set mcbtics 5; set output 'spacetime.png'; plot 'spacetime.dat' u (1.0+$2):1:3 w image notitle, 'spikes.dat' u (1.0+$2):1 w p pt 7 ps 0.9 lc rgb 'white' notitle;";
+//     plot_command << "\nEOF";
+//     std::cout << "\nGnuplot:\n" << plot_command.str() << "\n\n";
+//     std::system (plot_command.str().c_str());
+// }
 
-void SingleFHNPoissonTrace (long time, double freq) {
-    FHNens neu;
-    neu.resize(1, 1, 1);
-    neu.setFHNpars (1.2, 0.0, 0.01, 0.0, 0.0);
-    neu.equilibriumIC ();
-    neu.set_poisson_pars (freq, 1.0);
-    double dt = 0.0001;
-    long steps = time;
-    long save_every = 10;
-    std::ofstream fout("trace.dat");
-    std::ofstream fpulse("pulse.dat");
-    long prev_input = 0;
-    for (long step_i = 0; step_i < steps; step_i++) {
-        double t = step_i * dt;
-        neu.step(dt, t);
-        if (step_i % save_every == 0)
-            fout << t << " " << neu.state[0].x << "\n";
-        if (neu.n_input[0] > prev_input) {
-            prev_input = neu.n_input[0];
-            fpulse << t << " " << neu.state[0].x << "\n";
+// void SingleFHNPoissonTrace (long time, double freq) {
+//     FHNens neu;
+//     neu.resize(1, 1, 1);
+//     neu.setFHNpars (1.2, 0.0, 0.01, 0.0, 0.0);
+//     neu.equilibriumIC ();
+//     neu.set_poisson_pars (freq, 1.0);
+//     double dt = 0.0001;
+//     long steps = time;
+//     long save_every = 10;
+//     std::ofstream fout("trace.dat");
+//     std::ofstream fpulse("pulse.dat");
+//     long prev_input = 0;
+//     for (long step_i = 0; step_i < steps; step_i++) {
+//         double t = step_i * dt;
+//         neu.step(dt, t);
+//         if (step_i % save_every == 0)
+//             fout << t << " " << neu.state[0].x << "\n";
+//         if (neu.n_input[0] > prev_input) {
+//             prev_input = neu.n_input[0];
+//             fpulse << t << " " << neu.state[0].x << "\n";
+//         }
+//     }
+//     fout.close();
+//     fpulse.close();
+//     std::stringstream plot_command;
+//     plot_command << "gnuplot << 'EOF'\n";
+//     plot_command << "set terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; set key tmargin center horizontal; set xlabel 't'; set ylabel 'x'; set ytics 1; set output 'SingleFHNPoissonTrace.png'; plot 'trace.dat' u 1:2 w l lw 3 title 'x(t)', 'pulse.dat' u 1:(1) w p pt 7 ps 1.2 title 'Poisson pulses';";
+//     plot_command << "\nEOF";
+//     std::cout << "\nGnuplot:\n" << plot_command.str() << "\n\n";
+//     std::system (plot_command.str().c_str());
+// }
+
+// void Ring100FoutOnFin () {
+//     long nofth = 101;
+//     long N1 = 100;
+//     double dt = 0.0001;
+//     long steps = 10000*5000;
+//     std::vector<double> nin;
+//     std::vector<double> nout;
+//     std::vector<double> freq;
+//     nin.resize(nofth);
+//     nout.resize(nofth);
+//     freq.resize(nofth);
+//     #pragma omp parallel for schedule(dynamic)
+//     for (long iter = 0; iter < nofth; iter++) {
+//         FHNens ring;
+//         freq[iter] = 0.0 + iter * 0.02;//pow(10.0, iter * 0.025 - 3.0);
+//         ring.resize (N1, 1, 1);
+//         ring.setFHNpars (1.2, 0.0, 0.01, 0.0, 0.0);
+//         ring.set_coup_sigma_x (0.0);
+//         ring.set_coup_sigma_P_x (1);
+//         ring.set_coup_gamma_x (0.0);
+//         ring.equilibriumIC ();
+//         ring.set_poisson_pars (freq[iter], 1.0);
+//         for (long step_i = 0; step_i < steps; step_i++) {
+//             ring.step(dt, step_i * dt);
+//         }
+//         nin[iter] = 0.0;
+//         nout[iter] = 0.0;
+//         for (int n1 = 0; n1 < N1; n1++) {
+//             nin[iter] += ring.n_input[ring.d3to1 (n1, 0, 0)];
+//             nout[iter] += ring.n_spikes[ring.d3to1 (n1, 0, 0)];
+//         }
+//     }
+//     std::ofstream fout("FoutOnFin.dat");
+//     for (long iter = 0; iter < nofth; iter++) {
+//         fout << freq[iter] << " " << nin[iter]/(steps*dt*N1) << " " << nout[iter]/(steps*dt*N1) << "\n";
+//     }
+//     fout.close();
+//     std::stringstream plot_command;
+//     plot_command << "gnuplot << 'EOF'\n";
+//     plot_command << "set terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; set key tmargin center horizontal; set xlabel 'f(Poisson)'; set ylabel 'f(sp)'; set xrange [1.0e-3:2.0]; set yrange [0:0.4]; set output 'FoutOnFin.png'; plot 'FoutOnFin.dat' u 1:3 w l lw 3 notitle, x w l lw 3 dt 2 notitle;";
+//     plot_command << "\nEOF";
+//     std::cout << "\nGnuplot:\n" << plot_command.str() << "\n\n";
+//     std::system (plot_command.str().c_str());
+// }
+
+// void Ring100FoutOnFinMultiplex (double gamma) {
+//     long nofth = 101;
+//     long N1 = 100;
+//     double dt = 0.0001;
+//     long steps = 10000 * 5000;
+//     std::vector<double> nout0;
+//     std::vector<double> nout1;
+//     std::vector<double> freq;
+//     nout0.resize(nofth);
+//     nout1.resize(nofth);
+//     freq.resize(nofth);
+//     #pragma omp parallel for schedule(dynamic)
+//     for (long iter = 0; iter < nofth; iter++) {
+//         FHNens ring;
+//         freq[iter] = 0.0 + iter * 0.02;//pow(10.0, iter * 0.025 - 3.0);
+//         ring.resize (N1, 1, 2);
+//         ring.setFHNpars (1.2, 0.0, 0.01, 0.0, 0.0);
+//         ring.set_coup_sigma_x (0.00, 0);
+//         ring.set_coup_sigma_x (0.00, 1);
+//         ring.set_coup_sigma_P_x (1, 0);
+//         ring.set_coup_sigma_P_x (1, 1);
+//         ring.set_coup_gamma_x (0.0);
+//         ring.set_coup_gamma_x (gamma, 0, 1);
+//         ring.set_coup_gamma_x (gamma, 1, 0);
+//         ring.equilibriumIC ();
+//         ring.set_poisson_pars (freq[iter], 1.0);
+//         for (long step_i = 0; step_i < steps; step_i++) {
+//             ring.step(dt, step_i * dt);
+//         }
+//         nout0[iter] = 0.0;
+//         nout1[iter] = 0.0;
+//         for (int n1 = 0; n1 < N1; n1++) {
+//             nout0[iter] += ring.n_spikes[ring.d3to1 (n1, 0, 0)];
+//             nout1[iter] += ring.n_spikes[ring.d3to1 (n1, 0, 1)];
+//         }
+//     }
+//     std::stringstream filename;
+//     std::stringstream filename_dat;
+//     filename << "FoutOnFinMultiplex-g" << gamma;
+//     filename_dat << filename.str() << ".dat";
+//     std::ofstream fout(filename_dat.str());
+//     for (long iter = 0; iter < nofth; iter++) {
+//         fout << freq[iter] << " " << nout0[iter]/(steps*dt*N1) << " " << nout1[iter]/(steps*dt*N1) << "\n";
+//     }
+//     fout.close();
+//     std::stringstream plot_command;
+//     plot_command << "gnuplot << 'EOF'\n";
+//     plot_command << "set terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; set key tmargin center horizontal; set xlabel 'f(Poisson)'; set ylabel 'f(sp)'; set xrange [1.0e-3:2.0]; set yrange [0:0.4]; set output '" << filename.str() << ".png'; plot '" << filename.str() << ".dat' u 1:(0.5*($2+$3)) w l lw 3 title 'σ=" << gamma << "', '../1layer/FoutOnFin.dat' u 1:3 w l lw 3 lc rgb 'black' title 'σ=0', x w l lw 3 lc rgb 'gray' dt 2 title 'f_{out}=f_{in}';";
+//     plot_command << "\nEOF";
+//     std::cout << "\nGnuplot:\n" << plot_command.str() << "\n\n";
+//     std::system (plot_command.str().c_str());
+// }
+
+// void Ring10FoutOnFinMultiplex3 (double gamma) {
+//     long nofth = 101;
+//     long N1 = 10;
+//     double dt = 0.0001;
+//     long steps = 10000 * 5000;
+//     std::vector<double> nout0;
+//     std::vector<double> nout1;
+//     std::vector<double> nout2;
+//     std::vector<double> freq;
+//     nout0.resize(nofth);
+//     nout1.resize(nofth);
+//     nout2.resize(nofth);
+//     freq.resize(nofth);
+//     #pragma omp parallel for schedule(dynamic)
+//     for (long iter = 0; iter < nofth; iter++) {
+//         FHNens ring;
+//         freq[iter] = 0.0 + iter * 0.02;//pow(10.0, iter * 0.025 - 3.0);
+//         ring.resize (N1, 1, 3);
+//         ring.setFHNpars (1.2, 0.0, 0.01, 0.0, 0.0);
+//         ring.set_coup_sigma_x (0.00, 0);
+//         ring.set_coup_sigma_x (0.00, 1);
+//         ring.set_coup_sigma_x (0.00, 2);
+//         ring.set_coup_sigma_P_x (1, 0);
+//         ring.set_coup_sigma_P_x (1, 1);
+//         ring.set_coup_sigma_P_x (1, 2);
+//         ring.set_coup_gamma_x (0.0);
+//         ring.set_coup_gamma_x (gamma, 0, 1);
+//         ring.set_coup_gamma_x (gamma, 1, 0);
+//         ring.set_coup_gamma_x (gamma, 1, 2);
+//         ring.set_coup_gamma_x (gamma, 2, 1);
+//         ring.set_coup_gamma_x (gamma, 0, 2);
+//         ring.set_coup_gamma_x (gamma, 2, 0);
+//         ring.equilibriumIC ();
+//         ring.set_poisson_pars (freq[iter], 1.0);
+//         for (long step_i = 0; step_i < steps; step_i++) {
+//             ring.step(dt, step_i * dt);
+//         }
+//         nout0[iter] = 0.0;
+//         nout1[iter] = 0.0;
+//         nout2[iter] = 0.0;
+//         for (int n1 = 0; n1 < N1; n1++) {
+//             nout0[iter] += ring.n_spikes[ring.d3to1 (n1, 0, 0)];
+//             nout1[iter] += ring.n_spikes[ring.d3to1 (n1, 0, 1)];
+//             nout2[iter] += ring.n_spikes[ring.d3to1 (n1, 0, 2)];
+//         }
+//     }
+//     std::stringstream filename;
+//     std::stringstream filename_dat;
+//     filename << "FoutOnFinMultiplex-g" << gamma;
+//     filename_dat << filename.str() << ".dat";
+//     std::ofstream fout(filename_dat.str());
+//     for (long iter = 0; iter < nofth; iter++) {
+//         fout << freq[iter] << " " << nout0[iter]/(steps*dt*N1) << " " << nout1[iter]/(steps*dt*N1) << " " << nout2[iter]/(steps*dt*N1) << "\n";
+//     }
+//     fout.close();
+//     std::stringstream plot_command;
+//     plot_command << "gnuplot << 'EOF'\n";
+//     plot_command << "set terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; set key tmargin center horizontal; set xlabel 'f(Poisson)'; set ylabel 'f(sp)'; set xrange [1.0e-3:2.0]; set yrange [0:0.4]; set output '" << filename.str() << ".png'; plot '" << filename.str() << ".dat' u 1:(($2+$3+$4)/3.0) w l lw 3 title 'σ=" << gamma << "', '../1layer/FoutOnFin.dat' u 1:3 w l lw 3 lc rgb 'black' title 'σ=0', x w l lw 3 lc rgb 'gray' dt 2 title 'f_{out}=f_{in}';";
+//     plot_command << "\nEOF";
+//     std::cout << "\nGnuplot:\n" << plot_command.str() << "\n\n";
+//     std::system (plot_command.str().c_str());
+// }
+
+void RingFoutOnFinSizesRanges (double sigmaloc, double freqloc) {
+    long nofth = 0;
+    for (long totsize = 5; totsize <= 125; totsize+=30) {
+        for (long range = 1; range < (totsize/2); range++) {
+            nofth++;
         }
     }
-    fout.close();
-    fpulse.close();
-    std::stringstream plot_command;
-    plot_command << "gnuplot << 'EOF'\n";
-    plot_command << "set terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; set key tmargin center horizontal; set xlabel 't'; set ylabel 'x'; set ytics 1; set output 'SingleFHNPoissonTrace.png'; plot 'trace.dat' u 1:2 w l lw 3 title 'x(t)', 'pulse.dat' u 1:(1) w p pt 7 ps 1.2 title 'Poisson pulses';";
-    plot_command << "\nEOF";
-    std::cout << "\nGnuplot:\n" << plot_command.str() << "\n\n";
-    std::system (plot_command.str().c_str());
-}
-
-void Ring100FoutOnFin () {
-    long nofth = 101;
-    long N1 = 100;
     double dt = 0.0001;
-    long steps = 10000*5000;
-    std::vector<double> nin;
-    std::vector<double> nout;
-    std::vector<double> freq;
-    nin.resize(nofth);
-    nout.resize(nofth);
-    freq.resize(nofth);
+    long steps = 10000 * 20000;
+    std::vector<double> nout0;
+    std::vector<long> sizes;
+    std::vector<long> ranges;
+    nout0.resize(nofth);
+    sizes.resize(nofth);
+    ranges.resize(nofth);
+    long nofthloc = 0;
+    for (long totsize = 5; totsize <= 125; totsize+=30) {
+        for (long range = 1; range < (totsize/2); range++) {
+            sizes[nofthloc] = totsize;
+            ranges[nofthloc] = range;
+            nofthloc++;
+        }
+    }
     #pragma omp parallel for schedule(dynamic)
     for (long iter = 0; iter < nofth; iter++) {
         FHNens ring;
-        freq[iter] = 0.0 + iter * 0.02;//pow(10.0, iter * 0.025 - 3.0);
-        ring.resize (N1, 1, 1);
+        ring.resize (sizes[iter], 1, 1);
         ring.setFHNpars (1.2, 0.0, 0.01, 0.0, 0.0);
-        ring.set_coup_sigma_x (0.0);
-        ring.set_coup_sigma_P_x (1);
+        ring.set_coup_sigma_x (sigmaloc, 0);
+        ring.set_coup_sigma_P_x (ranges[iter], 0);
         ring.set_coup_gamma_x (0.0);
         ring.equilibriumIC ();
-        ring.set_poisson_pars (freq[iter], 1.0);
+        ring.set_poisson_pars (0.0, 0.0);
+        ring.set_poisson_pars (freqloc, 1.0, 0);
         for (long step_i = 0; step_i < steps; step_i++) {
             ring.step(dt, step_i * dt);
         }
-        nin[iter] = 0.0;
-        nout[iter] = 0.0;
-        for (int n1 = 0; n1 < N1; n1++) {
-            nin[iter] += ring.n_input[ring.d3to1 (n1, 0, 0)];
-            nout[iter] += ring.n_spikes[ring.d3to1 (n1, 0, 0)];
+        nout0[iter] = 0.0;
+        for (int n1 = 0; n1 < sizes[iter]; n1++) {
+            nout0[iter] += ring.n_spikes[ring.d3to1 (n1, 0, 0)];
         }
     }
-    std::ofstream fout("FoutOnFin.dat");
+    std::stringstream filename;
+    std::stringstream filename_dat;
+    filename << "FoutOnFinMultiplex-s" << sigmaloc << "-f" << freqloc;
+    filename_dat << filename.str() << ".dat";
+    std::ofstream fout(filename_dat.str());
+    long currentN = sizes[0];
     for (long iter = 0; iter < nofth; iter++) {
-        fout << freq[iter] << " " << nin[iter]/(steps*dt*N1) << " " << nout[iter]/(steps*dt*N1) << "\n";
+        if (sizes[iter]!=currentN) {
+            fout << "\n";
+            currentN = sizes[iter];
+        }
+        fout << sizes[iter] << " " << ranges[iter] << " " << nout0[iter]/(steps*dt*sizes[iter]) << "\n";
     }
     fout.close();
     std::stringstream plot_command;
     plot_command << "gnuplot << 'EOF'\n";
-    plot_command << "set terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; set key tmargin center horizontal; set xlabel 'f(Poisson)'; set ylabel 'f(sp)'; set xrange [1.0e-3:2.0]; set yrange [0:0.4]; set output 'FoutOnFin.png'; plot 'FoutOnFin.dat' u 1:3 w l lw 3 notitle, x w l lw 3 dt 2 notitle;";
+    plot_command << "set terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; set key tmargin center horizontal; set xlabel 'r'; set ylabel 'f(sp)'; set xrange [0.0:0.5]; set yrange [0:0.4]; set output '" << filename.str() << ".png'; plot '" << filename.str() << ".dat' u ($2/$1):($1==5?$3:1/0) w l lw 3 title 'N=5', '' u ($2/$1):($1==35?$3:1/0) w l lw 3 title 'N=35', '' u ($2/$1):($1==65?$3:1/0) w l lw 3 title 'N=65', '' u ($2/$1):($1==95?$3:1/0) w l lw 3 title 'N=95', '' u ($2/$1):($1==125?$3:1/0) w l lw 3 title 'N=125';";
     plot_command << "\nEOF";
     std::cout << "\nGnuplot:\n" << plot_command.str() << "\n\n";
     std::system (plot_command.str().c_str());
 }
 
-void Ring100FoutOnFinMultiplex (double gamma) {
+void RingsFoutOnFinMultiplex3 (long Nloc, long Ploc, double sigmaloc, double gammaloc) {
     long nofth = 101;
-    long N1 = 100;
     double dt = 0.0001;
-    long steps = 10000 * 5000;
+    long steps = 10000 * 50000;
     std::vector<double> nout0;
     std::vector<double> nout1;
+    std::vector<double> nout2;
     std::vector<double> freq;
     nout0.resize(nofth);
     nout1.resize(nofth);
+    nout2.resize(nofth);
     freq.resize(nofth);
     #pragma omp parallel for schedule(dynamic)
     for (long iter = 0; iter < nofth; iter++) {
         FHNens ring;
         freq[iter] = 0.0 + iter * 0.02;//pow(10.0, iter * 0.025 - 3.0);
-        ring.resize (N1, 1, 2);
+        ring.resize (Nloc, 1, 3);
         ring.setFHNpars (1.2, 0.0, 0.01, 0.0, 0.0);
-        ring.set_coup_sigma_x (0.00, 0);
-        ring.set_coup_sigma_x (0.00, 1);
-        ring.set_coup_sigma_P_x (1, 0);
-        ring.set_coup_sigma_P_x (1, 1);
+        ring.set_coup_sigma_x (sigmaloc, 0);
+        ring.set_coup_sigma_x (sigmaloc, 1);
+        ring.set_coup_sigma_x (sigmaloc, 2);
+        ring.set_coup_sigma_P_x (Ploc, 0);
+        ring.set_coup_sigma_P_x (Ploc, 1);
+        ring.set_coup_sigma_P_x (Ploc, 2);
         ring.set_coup_gamma_x (0.0);
-        ring.set_coup_gamma_x (gamma, 0, 1);
-        ring.set_coup_gamma_x (gamma, 1, 0);
+        ring.set_coup_gamma_x (gammaloc, 2, 1);
+        ring.set_coup_gamma_x (gammaloc, 1, 0);
         ring.equilibriumIC ();
-        ring.set_poisson_pars (freq[iter], 1.0);
+        ring.set_poisson_pars (0.0, 0.0);
+        ring.set_poisson_pars (freq[iter], 1.0, 0);
         for (long step_i = 0; step_i < steps; step_i++) {
             ring.step(dt, step_i * dt);
         }
         nout0[iter] = 0.0;
         nout1[iter] = 0.0;
-        for (int n1 = 0; n1 < N1; n1++) {
+        nout2[iter] = 0.0;
+        for (int n1 = 0; n1 < Nloc; n1++) {
             nout0[iter] += ring.n_spikes[ring.d3to1 (n1, 0, 0)];
             nout1[iter] += ring.n_spikes[ring.d3to1 (n1, 0, 1)];
+            nout2[iter] += ring.n_spikes[ring.d3to1 (n1, 0, 2)];
         }
     }
     std::stringstream filename;
     std::stringstream filename_dat;
-    filename << "FoutOnFinMultiplex-g" << gamma;
+    filename << "FoutOnFinMultiplex-g" << sigmaloc;
     filename_dat << filename.str() << ".dat";
     std::ofstream fout(filename_dat.str());
     for (long iter = 0; iter < nofth; iter++) {
-        fout << freq[iter] << " " << nout0[iter]/(steps*dt*N1) << " " << nout1[iter]/(steps*dt*N1) << "\n";
+        fout << freq[iter] << " " << nout0[iter]/(steps*dt*Nloc) << " " << nout1[iter]/(steps*dt*Nloc) << " " << nout2[iter]/(steps*dt*Nloc) << "\n";
     }
     fout.close();
     std::stringstream plot_command;
     plot_command << "gnuplot << 'EOF'\n";
-    plot_command << "set terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; set key tmargin center horizontal; set xlabel 'f(Poisson)'; set ylabel 'f(sp)'; set xrange [1.0e-3:2.0]; set yrange [0:0.4]; set output '" << filename.str() << ".png'; plot '" << filename.str() << ".dat' u 1:(0.5*($2+$3)) w l lw 3 title 'σ=" << gamma << "', '../1layer/FoutOnFin.dat' u 1:3 w l lw 3 lc rgb 'black' title 'σ=0', x w l lw 3 lc rgb 'gray' dt 2 title 'f_{out}=f_{in}';";
+    plot_command << "set terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; set key tmargin center horizontal; set xlabel 'f(Poisson)'; set ylabel 'f(sp)'; set xrange [1.0e-3:2.0]; set yrange [0:0.4]; set output '" << filename.str() << ".png'; plot '" << filename.str() << ".dat' u 1:2 w l lw 3 title 'σ=" << sigmaloc << "', '../1layer/FoutOnFin.dat' u 1:3 w l lw 3 lc rgb 'black' title 'σ=0', x w l lw 3 lc rgb 'gray' dt 2 title 'f_{out}=f_{in}';";
     plot_command << "\nEOF";
     std::cout << "\nGnuplot:\n" << plot_command.str() << "\n\n";
     std::system (plot_command.str().c_str());
+    std::stringstream plot_command2;
+    plot_command2 << "gnuplot << 'EOF'\n";
+    plot_command2 << "set terminal pngcairo size 1200,600 enhanced font 'Verdana,20'; set key tmargin center horizontal; set xlabel 'f(Poisson)'; set ylabel 'f(sp)'; set xrange [1.0e-3:2.0]; set yrange [0:0.4]; set output '" << filename.str() << "full.png'; plot '" << filename.str() << ".dat' u 1:2 w l lw 3 title 'σ=" << sigmaloc << "', '' u 1:3 w l lw 3 title '2nd layer', '' u 1:4 w l lw 3 title '3rd layer', '../1layer/FoutOnFin.dat' u 1:3 w l lw 3 lc rgb 'black' title 'σ=0', x w l lw 3 lc rgb 'gray' dt 2 title 'f_{out}=f_{in}';";
+    plot_command2 << "\nEOF";
+    std::cout << "\nGnuplot:\n" << plot_command2.str() << "\n\n";
+    std::system (plot_command2.str().c_str());
 }
 
 void Ring100 () {
@@ -442,6 +648,17 @@ void Ring100 () {
     // Ring100FoutOnFin ();
     // for (double g = 0.0; g < 0.2; g += 0.01)
     //     Ring100FoutOnFinMultiplex (g);
+    // for (double g = 0.0; g < 0.2; g += 0.01)
+    //     Ring10FoutOnFinMultiplex3 (g);
+    // for (double g = 0.25; g < 1.0; g += 0.05)
+    //     Ring10FoutOnFinMultiplex3 (g);
+    // for (double s = 0.0; s < 0.2; s += 0.01)
+    //     RingsFoutOnFinMultiplex3 (5, 1, s, 0.1);
+    // for (double s = 0.2; s < 1.0; s += 0.05)
+    //     RingsFoutOnFinMultiplex3 (5, 1, s, 0.1);
+    for (double s = 0.50; s < 0.56; s += 0.05)
+        for (double f = 0.30; f < 0.31; f += 0.05)
+            RingFoutOnFinSizesRanges (s, f);
 }
 
 #endif
